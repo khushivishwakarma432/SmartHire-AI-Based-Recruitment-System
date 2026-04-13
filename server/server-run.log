@@ -1,0 +1,6 @@
+
+> smarthire-server@1.0.0 start
+> node src/index.js
+
+MongoDB connected: ac-aux5nve-shard-00-00.k5u1xhp.mongodb.net
+Server running on port 5002
