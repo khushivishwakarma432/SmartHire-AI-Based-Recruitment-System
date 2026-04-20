@@ -1173,6 +1173,451 @@ function CandidatesList() {
     }
   };
 
+  const renderMobileCandidateDetails = ({
+    candidate,
+    scoreEntry,
+    recommendation,
+    suggestedRecruiterAction,
+    reviewDraft,
+    interviewDraft,
+    tagDraft,
+    reviewError,
+    reviewMessage,
+    interviewError,
+    interviewMessage,
+    tagError,
+    tagMessage,
+    hasInterview,
+  }) => (
+    <div className="mt-3 grid gap-2.5">
+      {scoreEntry ? (
+        <>
+          <div className="panel-muted">
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3.5">
+              <div className="flex flex-col gap-2.5">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="badge-compact border-sky-200 bg-sky-50 text-[0.68rem] uppercase tracking-[0.2em] text-sky-700">
+                      AI Evaluation
+                    </span>
+                    <span className="badge-compact border-slate-200 bg-white text-[0.68rem] uppercase tracking-[0.2em] text-slate-500">
+                      Explainability
+                    </span>
+                  </div>
+                  <h3 className="mt-1.5 text-sm font-semibold text-slate-900">
+                    Why this candidate received this score
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-5 text-slate-600">
+                    {getScoreReason(
+                      scoreEntry.score,
+                      scoreEntry.matchedSkills,
+                      scoreEntry.missingSkills,
+                    )}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`badge-compact px-2.5 py-1 text-xs ${recommendation.className}`}>
+                    {recommendation.label}
+                  </span>
+                  <span className="badge-compact border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700">
+                    {scoreEntry.score}/100
+                  </span>
+                  <button
+                    className="btn-secondary btn-compact w-full sm:w-auto disabled:cursor-not-allowed disabled:opacity-70"
+                    type="button"
+                    onClick={() => handleDownloadReport(candidate)}
+                    disabled={generatingReportByCandidate[candidate._id]}
+                  >
+                    {generatingReportByCandidate[candidate._id] ? 'Generating PDF...' : 'Download Report'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-2.5 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    Resume Strength / Weakness Summary
+                  </p>
+                  <p className="mt-1.5 text-sm leading-5 text-slate-600">
+                    {getStrengthWeaknessSummary(
+                      scoreEntry.score,
+                      scoreEntry.matchedSkills,
+                      scoreEntry.missingSkills,
+                      scoreEntry.summary,
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    Suggested Recruiter Action
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className={`badge-compact px-2.5 py-1 text-xs ${suggestedRecruiterAction.className}`}>
+                      {suggestedRecruiterAction.label}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-sm leading-5 text-slate-600">
+                    {suggestedRecruiterAction.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-2.5 lg:grid-cols-3">
+            <div className="panel-muted border-emerald-200 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                Matched Skills
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {scoreEntry.matchedSkills?.length ? (
+                  scoreEntry.matchedSkills.map((skill) => (
+                    <span
+                      key={`${candidate._id}-mobile-matched-${skill}`}
+                      className="skill-pill border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] text-emerald-700"
+                    >
+                      {skill}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">No matched skills returned.</p>
+                )}
+              </div>
+              <p className="mt-2.5 text-sm leading-5 text-slate-600">
+                {getMatchedSkillsExplanation(scoreEntry.matchedSkills)}
+              </p>
+            </div>
+
+            <div className="panel-muted border-rose-200 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-700">
+                Missing Skills
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {scoreEntry.missingSkills?.length ? (
+                  scoreEntry.missingSkills.map((skill) => (
+                    <span
+                      key={`${candidate._id}-mobile-missing-${skill}`}
+                      className="skill-pill border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] text-rose-700"
+                    >
+                      {skill}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">No missing skills returned.</p>
+                )}
+              </div>
+              <p className="mt-2.5 text-sm leading-5 text-slate-600">
+                {getMissingSkillsExplanation(scoreEntry.missingSkills)}
+              </p>
+            </div>
+
+            <div className="panel-muted p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+                AI Summary
+              </p>
+              <p className="mt-2 text-sm leading-5 text-slate-600">
+                {scoreEntry.summary ||
+                  'AI evaluation is available, but a detailed explanation summary was not returned for this score.'}
+              </p>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="panel-muted">
+          <div className="flex flex-col gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                AI Evaluation
+              </p>
+              <h3 className="mt-1.5 text-base font-semibold text-slate-900">
+                No AI score generated yet
+              </h3>
+              <p className="mt-1.5 text-sm leading-5 text-slate-600">
+                Generate a score to view the hiring recommendation, score explanation, matched skills, missing skills, and recruiter guidance for this candidate.
+              </p>
+            </div>
+            <button
+              className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+              type="button"
+              onClick={() => handleGenerateScore(candidate)}
+              disabled={loadingScores[candidate._id]}
+            >
+              {loadingScores[candidate._id] ? 'Generating...' : 'Generate Score'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="panel-muted p-3.5">
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Candidate Tags
+              </p>
+              <h3 className="mt-1.5 text-base font-semibold text-slate-900">
+                Organize this profile with recruiter tags
+              </h3>
+            </div>
+            <span className="badge-compact border-slate-200 bg-slate-50 text-slate-600">
+              {tagDraft.tags.length} tag{tagDraft.tags.length === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          {tagDraft.tags.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {tagDraft.tags.map((tag) => (
+                <button
+                  key={`${candidate._id}-mobile-tag-${tag}`}
+                  className="candidate-tag-chip candidate-tag-chip-interactive"
+                  type="button"
+                  onClick={() => handleRemoveCandidateTag(candidate._id, tag)}
+                  disabled={savingTagsByCandidate[candidate._id]}
+                  title={tag}
+                >
+                  <span className="truncate">{tag}</span>
+                  <span className="candidate-tag-remove">x</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">No tags added yet.</p>
+          )}
+
+          <div className="flex flex-wrap gap-1.5">
+            {SUGGESTED_CANDIDATE_TAGS.map((tag) => (
+              <button
+                key={`${candidate._id}-mobile-suggested-${tag}`}
+                className="candidate-tag-chip candidate-tag-chip-suggested"
+                type="button"
+                onClick={() => handleAddCandidateTag(candidate._id, tag)}
+                disabled={savingTagsByCandidate[candidate._id]}
+                title={tag}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              className="input-field min-w-0"
+              type="text"
+              placeholder="Add a custom tag"
+              value={tagDraft.input}
+              onChange={(event) => updateTagInput(candidate._id, event.target.value)}
+              onKeyDown={(event) => handleTagInputKeyDown(event, candidate._id)}
+              disabled={savingTagsByCandidate[candidate._id]}
+            />
+            <button
+              className="btn-secondary btn-compact w-full sm:w-auto"
+              type="button"
+              onClick={() => handleAddCandidateTag(candidate._id, tagDraft.input)}
+              disabled={savingTagsByCandidate[candidate._id]}
+            >
+              {savingTagsByCandidate[candidate._id] ? 'Saving...' : 'Add Tag'}
+            </button>
+          </div>
+
+          {tagError ? <p className="alert-error">{tagError}</p> : null}
+          {tagMessage ? <p className="alert-success">{tagMessage}</p> : null}
+          <p className="text-xs text-slate-500">
+            Changes save automatically and remain available after refresh.
+          </p>
+        </div>
+      </div>
+
+      <div className="panel-muted p-3.5">
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <div>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Recruiter Status
+            </label>
+            <select
+              className="input-field"
+              value={reviewDraft.recruiterStatus}
+              onChange={(event) =>
+                updateReviewDraft(candidate._id, 'recruiterStatus', event.target.value)
+              }
+            >
+              <option value="Pending Review">Pending Review</option>
+              <option value="Shortlisted">Shortlisted</option>
+              <option value="On Hold">On Hold</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Recruiter Notes
+            </label>
+            <textarea
+              className="input-field min-h-28 resize-y"
+              placeholder="Add recruiter notes about this candidate."
+              value={reviewDraft.recruiterNotes}
+              onChange={(event) =>
+                updateReviewDraft(candidate._id, 'recruiterNotes', event.target.value)
+              }
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              {reviewDraft.recruiterNotes.trim().length}/1000 characters
+            </p>
+          </div>
+          {reviewError ? <p className="alert-error">{reviewError}</p> : null}
+          {reviewMessage ? <p className="alert-success">{reviewMessage}</p> : null}
+          <div className="flex justify-stretch sm:justify-end">
+            <button
+              className="btn-secondary btn-compact w-full disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+              type="button"
+              onClick={() => handleSaveReview(candidate._id)}
+              disabled={savingReviewByCandidate[candidate._id]}
+            >
+              {savingReviewByCandidate[candidate._id] ? 'Saving...' : 'Save Review'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel-muted p-3.5">
+        <div className="space-y-6 rounded-[20px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.06)] sm:px-7 sm:py-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Interview Scheduling
+              </p>
+              <h3 className="mt-2 text-lg font-semibold text-slate-900">
+                Schedule Interview
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Add the next interview step for this candidate and keep the pipeline updated.
+              </p>
+            </div>
+            {hasInterview ? (
+              <span className={`badge-compact ${getInterviewStatusBadge(candidate.interviewStatus)}`}>
+                {candidate.interviewStatus}
+              </span>
+            ) : (
+              <span className="badge-compact border-slate-200 bg-slate-50 text-slate-600">
+                Not Scheduled
+              </span>
+            )}
+          </div>
+
+          {hasInterview ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Date</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{candidate.interviewDate}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Time</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{candidate.interviewTime}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Mode</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{candidate.interviewMode}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Location / Link</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{candidate.interviewLocation || 'Not provided'}</p>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid gap-4 md:grid-cols-2 xl:gap-5">
+            <div className="space-y-2.5">
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Interview Date
+              </label>
+              <input
+                className="input-field min-h-[48px]"
+                type="date"
+                value={interviewDraft.interviewDate}
+                onChange={(event) =>
+                  updateInterviewDraft(candidate._id, 'interviewDate', event.target.value)
+                }
+              />
+            </div>
+            <div className="space-y-2.5">
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Interview Time
+              </label>
+              <input
+                className="input-field min-h-[48px]"
+                type="time"
+                value={interviewDraft.interviewTime}
+                onChange={(event) =>
+                  updateInterviewDraft(candidate._id, 'interviewTime', event.target.value)
+                }
+              />
+            </div>
+            <div className="space-y-2.5">
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Interview Mode
+              </label>
+              <select
+                className="input-field min-h-[48px]"
+                value={interviewDraft.interviewMode}
+                onChange={(event) =>
+                  updateInterviewDraft(candidate._id, 'interviewMode', event.target.value)
+                }
+              >
+                <option value="">Select mode</option>
+                <option value="Online">Online</option>
+                <option value="Offline">Offline</option>
+              </select>
+            </div>
+            <div className="space-y-2.5">
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Interview Status
+              </label>
+              <select
+                className="input-field min-h-[48px]"
+                value={interviewDraft.interviewStatus}
+                onChange={(event) =>
+                  updateInterviewDraft(candidate._id, 'interviewStatus', event.target.value)
+                }
+              >
+                <option value="">Select status</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="Completed">Completed</option>
+                <option value="Rescheduled">Rescheduled</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Location / Meeting Link
+            </label>
+            <input
+              className="input-field min-h-[48px]"
+              type="text"
+              placeholder="Office address or video meeting link"
+              value={interviewDraft.interviewLocation}
+              onChange={(event) =>
+                updateInterviewDraft(candidate._id, 'interviewLocation', event.target.value)
+              }
+            />
+          </div>
+
+          {interviewError ? <p className="alert-error">{interviewError}</p> : null}
+          {interviewMessage ? <p className="alert-success">{interviewMessage}</p> : null}
+
+          <div className="flex justify-stretch pt-1 sm:justify-end">
+            <button
+              className="btn-primary btn-compact w-full disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+              type="button"
+              onClick={() => handleSaveInterview(candidate._id)}
+              disabled={savingInterviewByCandidate[candidate._id]}
+            >
+              {savingInterviewByCandidate[candidate._id] ? 'Saving...' : 'Schedule Interview'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <AppShell
       title="Candidates"
@@ -1296,7 +1741,33 @@ function CandidatesList() {
       {error ? <p className="alert-error">{error}</p> : null}
 
       {isLoading ? (
-        <div className="table-shell">
+        <>
+          <div className="grid gap-3 lg:hidden">
+            {candidateTableSkeletonRows.map((row) => (
+              <div key={`candidate-mobile-skeleton-${row}`} className="panel space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="skeleton-line h-5 w-36" />
+                    <div className="mt-2 skeleton-line w-40" />
+                  </div>
+                  <div className="skeleton h-5 w-5 rounded" />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="skeleton-line w-full" />
+                  <div className="skeleton-line w-full" />
+                  <div className="skeleton-line w-28" />
+                  <div className="skeleton-line w-24" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <div className="skeleton-pill w-20" />
+                  <div className="skeleton-pill w-24" />
+                  <div className="skeleton-button w-28" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden lg:block table-shell">
           <div className="max-h-[calc(100vh-18rem)] overflow-auto">
             <table className="w-full min-w-[980px] divide-y divide-slate-200 xl:min-w-full">
               <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur">
@@ -1353,6 +1824,7 @@ function CandidatesList() {
             </table>
           </div>
         </div>
+        </>
       ) : candidates.length === 0 ? (
         <div className="empty-state">
           <p className="kicker">Candidate Pipeline</p>
@@ -1406,7 +1878,185 @@ function CandidatesList() {
           </p>
         </div>
       ) : (
-        <div className="table-shell">
+        <>
+          <div className="space-y-4 lg:hidden">
+            {sortedCandidates.map((candidate) => {
+              const scoreEntry = scoresByCandidate[candidate._id];
+              const isExpanded = expandedCandidateId === candidate._id;
+              const candidateTags = normalizeCandidateTags(candidate.tags);
+              const recommendation = scoreEntry ? getRecommendation(scoreEntry.score) : null;
+              const suggestedRecruiterAction = scoreEntry
+                ? getSuggestedRecruiterAction(scoreEntry.score)
+                : null;
+              const statusBadge = getRecruiterStatusBadge(candidate.recruiterStatus);
+              const reviewDraft = reviewDraftsByCandidate[candidate._id] || {
+                recruiterStatus: normalizeRecruiterStatus(candidate.recruiterStatus),
+                recruiterNotes: candidate.recruiterNotes || '',
+              };
+              const interviewDraft = interviewDraftsByCandidate[candidate._id] || {
+                interviewDate: candidate.interviewDate || '',
+                interviewTime: candidate.interviewTime || '',
+                interviewMode: candidate.interviewMode || '',
+                interviewLocation: candidate.interviewLocation || '',
+                interviewStatus: candidate.interviewStatus || '',
+              };
+              const tagDraft = tagDraftsByCandidate[candidate._id] || {
+                input: '',
+                tags: candidateTags,
+              };
+              const reviewError = reviewErrorsByCandidate[candidate._id];
+              const reviewMessage = reviewMessagesByCandidate[candidate._id];
+              const interviewError = interviewErrorsByCandidate[candidate._id];
+              const interviewMessage = interviewMessagesByCandidate[candidate._id];
+              const tagError = tagErrorsByCandidate[candidate._id];
+              const tagMessage = tagMessagesByCandidate[candidate._id];
+              const hasInterview = Boolean(
+                candidate.interviewDate &&
+                candidate.interviewTime &&
+                candidate.interviewMode &&
+                candidate.interviewStatus,
+              );
+
+              return (
+                <article key={`candidate-mobile-${candidate._id}`} className="panel p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-start gap-3">
+                        <label className="mt-1 inline-flex items-center">
+                          <input
+                            className="checkbox-field"
+                            type="checkbox"
+                            checked={selectedCandidateIds.includes(candidate._id)}
+                            disabled={
+                              !selectedCandidateIds.includes(candidate._id) &&
+                              selectedCandidateIds.length >= 3
+                            }
+                            onChange={() => toggleCandidateSelection(candidate._id)}
+                          />
+                        </label>
+                        <div className="min-w-0">
+                          <h2 className="text-base font-semibold text-slate-900">{candidate.fullName}</h2>
+                          <p className="mt-1 break-words text-sm text-slate-600">{candidate.email}</p>
+                          <p className="mt-1 text-sm text-slate-500">{candidate.appliedJob?.title || 'Not available'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`badge-compact ${statusBadge.className}`}>{statusBadge.label}</span>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {candidateTags.length ? (
+                      <>
+                        {candidateTags.slice(0, 3).map((tag) => (
+                          <span
+                            key={`${candidate._id}-card-tag-${tag}`}
+                            className="candidate-tag-chip"
+                            title={tag}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {candidateTags.length > 3 ? (
+                          <span className="candidate-tag-chip candidate-tag-chip-muted">
+                            +{candidateTags.length - 3}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <span className="candidate-tag-chip candidate-tag-chip-muted">No tags yet</span>
+                    )}
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Uploaded</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-900">
+                        {new Date(candidate.uploadedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">AI Score</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {scoreEntry ? (
+                          <>
+                            <span className={`badge-compact ${getScoreClassName(scoreEntry.score)}`}>
+                              {scoreEntry.score}/100
+                            </span>
+                            <span className={`badge-compact ${recommendation.className}`}>
+                              {recommendation.label}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-slate-500">Not scored</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    <a
+                      className="btn-secondary btn-compact w-full sm:w-auto"
+                      href={withApiBase(candidate.resumeUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View Resume
+                    </a>
+                    <button
+                      className="btn-primary btn-compact w-full disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+                      type="button"
+                      onClick={() => handleGenerateScore(candidate)}
+                      disabled={loadingScores[candidate._id]}
+                    >
+                      {loadingScores[candidate._id] ? 'Generating...' : 'Generate Score'}
+                    </button>
+                    {scoreEntry ? (
+                      <button
+                        className="btn-secondary btn-compact w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                        type="button"
+                        onClick={() => handleDownloadReport(candidate)}
+                        disabled={generatingReportByCandidate[candidate._id]}
+                      >
+                        {generatingReportByCandidate[candidate._id] ? 'Generating PDF...' : 'Download Report'}
+                      </button>
+                    ) : null}
+                    <button
+                      className="btn-secondary btn-compact w-full sm:w-auto"
+                      type="button"
+                      onClick={() => toggleExpandedRow(candidate._id)}
+                    >
+                      {isExpanded ? 'Hide Details' : 'View Details'}
+                    </button>
+                  </div>
+
+                  {scoreErrors[candidate._id] ? (
+                    <p className="alert-error mt-3">{scoreErrors[candidate._id]}</p>
+                  ) : null}
+
+                  {isExpanded
+                    ? renderMobileCandidateDetails({
+                        candidate,
+                        scoreEntry,
+                        recommendation,
+                        suggestedRecruiterAction,
+                        reviewDraft,
+                        interviewDraft,
+                        tagDraft,
+                        reviewError,
+                        reviewMessage,
+                        interviewError,
+                        interviewMessage,
+                        tagError,
+                        tagMessage,
+                        hasInterview,
+                      })
+                    : null}
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="hidden lg:block table-shell">
           <div className="max-h-[calc(100vh-18rem)] overflow-auto">
             <table className="w-full min-w-[980px] divide-y divide-slate-200 xl:min-w-full">
               <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur">
@@ -2058,6 +2708,7 @@ function CandidatesList() {
             </table>
           </div>
         </div>
+        </>
       )}
 
     </AppShell>

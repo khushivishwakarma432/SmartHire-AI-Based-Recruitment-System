@@ -884,9 +884,9 @@ function UploadCandidate() {
           </div>
         ) : null}
 
-        <div className="flex justify-end border-t border-slate-200 pt-2">
+        <div className="flex justify-stretch border-t border-slate-200 pt-2 sm:justify-end">
           <button
-            className="btn-primary btn-compact disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-primary btn-compact w-full disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             type="submit"
             disabled={isSubmitting || isLoadingJobs || jobs.length === 0}
           >
@@ -931,9 +931,9 @@ function UploadCandidate() {
             </select>
           </label>
 
-          <div className="flex flex-wrap gap-2 lg:justify-end">
+          <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
             <button
-              className="btn-secondary btn-compact"
+              className="btn-secondary btn-compact w-full sm:w-auto"
               type="button"
               onClick={() => bulkFileInputRef.current?.click()}
               disabled={isBulkSubmitting}
@@ -941,7 +941,7 @@ function UploadCandidate() {
               Select PDFs
             </button>
             <button
-              className="btn-secondary btn-compact"
+              className="btn-secondary btn-compact w-full sm:w-auto"
               type="button"
               onClick={handleClearBulkFiles}
               disabled={isBulkSubmitting || !bulkFiles.length}
@@ -1005,7 +1005,7 @@ function UploadCandidate() {
             </p>
           </div>
           <button
-            className="btn-primary btn-compact"
+            className="btn-primary btn-compact w-full sm:w-auto"
             type="button"
             onClick={() => bulkFileInputRef.current?.click()}
             disabled={isBulkSubmitting}
@@ -1134,9 +1134,9 @@ function UploadCandidate() {
           </div>
         ) : null}
 
-        <div className="flex justify-end border-t border-slate-200 pt-2">
+        <div className="flex justify-stretch border-t border-slate-200 pt-2 sm:justify-end">
           <button
-            className="btn-primary btn-compact disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-primary btn-compact w-full disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             type="submit"
             disabled={isBulkSubmitting || isLoadingJobs || jobs.length === 0 || !bulkFiles.length || !validBulkFiles.length}
           >

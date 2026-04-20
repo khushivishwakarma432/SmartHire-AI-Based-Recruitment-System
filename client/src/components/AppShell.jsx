@@ -1,6 +1,7 @@
 ﻿import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { removeToken } from '../utils/auth';
+import { useEffect, useState } from 'react';
 import GlobalSearch from './GlobalSearch';
 import HelpAssistant from './HelpAssistant';
 import NotificationBell from './NotificationBell';
@@ -56,8 +57,34 @@ function AppShell({ title, description, actions, children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const activeStepIndex = workflowSteps.findIndex((step) => step.match(location.pathname));
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isSidebarOpen]);
 
   const handleLogout = () => {
     removeToken();
@@ -66,7 +93,7 @@ function AppShell({ title, description, actions, children }) {
 
   const workspaceLinkClassName = ({ isActive }) =>
     [
-      'inline-flex min-h-[36px] items-center rounded-full px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition',
+      'inline-flex min-h-[40px] items-center rounded-full px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition xl:w-full',
       isActive
         ? isDark
           ? 'bg-emerald-500/12 text-emerald-200'
@@ -78,8 +105,67 @@ function AppShell({ title, description, actions, children }) {
 
   return (
     <main className="app-page">
-      <div className="app-container grid gap-4 xl:grid-cols-[248px_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className={`workflow-rail ${isDark ? 'border-[#1E293B] bg-[#0F172A] text-white' : 'border-slate-200 bg-white text-slate-950'}`}>
+      <div className="app-container space-y-4 xl:grid xl:grid-cols-[248px_minmax(0,1fr)] xl:items-start xl:gap-4 xl:space-y-0 2xl:grid-cols-[260px_minmax(0,1fr)]">
+        <header className={`workflow-header xl:hidden ${isDark ? 'border-[#1E293B] bg-[#0F172A]' : 'border-slate-200 bg-white'}`}>
+          <div className="flex items-start justify-between gap-3">
+            <Link className="flex min-w-0 items-center gap-3" to="/dashboard">
+              <span className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-semibold tracking-[0.18em] ${isDark ? 'bg-emerald-500/14 text-emerald-200' : 'bg-slate-950 text-white'}`}>
+                SH
+              </span>
+              <div className="min-w-0">
+                <p className={`text-[0.72rem] font-semibold uppercase tracking-[0.28em] ${isDark ? 'text-emerald-300' : 'text-slate-500'}`}>
+                  SmartHire
+                </p>
+                <p className={`mt-1 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Jobs, candidates, and decisions</p>
+              </div>
+            </Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
+              <button
+                className="btn-secondary btn-compact px-3"
+                type="button"
+                onClick={() => setIsSidebarOpen(true)}
+                aria-expanded={isSidebarOpen}
+                aria-controls="app-shell-sidebar"
+              >
+                Menu
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-4">
+            <div className="min-w-0">
+              <p className={`text-[0.72rem] font-semibold uppercase tracking-[0.26em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                SmartHire
+              </p>
+              <h1 className={`mt-2 text-[1.45rem] font-semibold tracking-tight sm:text-[1.7rem] ${isDark ? 'text-white' : 'text-slate-950'}`}>{title}</h1>
+              {description ? <p className={`mt-2 text-sm leading-6 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{description}</p> : null}
+            </div>
+            <div className="flex min-w-0 flex-col gap-3">
+              <div className="flex w-full min-w-0 flex-col gap-2">
+                <GlobalSearch />
+                <NotificationBell />
+              </div>
+              {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+            </div>
+          </div>
+        </header>
+
+        {isSidebarOpen ? (
+          <button
+            className="fixed inset-0 z-[84] bg-slate-950/50 backdrop-blur-[2px] xl:hidden"
+            type="button"
+            aria-label="Close navigation menu"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        ) : null}
+
+        <aside
+          id="app-shell-sidebar"
+          className={`workflow-rail fixed inset-y-0 left-0 z-[85] w-[min(90vw,22rem)] overflow-y-auto rounded-none rounded-r-[28px] transition-transform duration-200 xl:sticky xl:top-6 xl:z-auto xl:min-h-[calc(100vh-3rem)] xl:w-auto xl:rounded-[28px] ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'
+          } ${isDark ? 'border-[#1E293B] bg-[#0F172A] text-white' : 'border-slate-200 bg-white text-slate-950'}`}
+        >
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
             <Link className="flex min-w-0 items-center gap-3" to="/dashboard">
               <span className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-semibold tracking-[0.18em] ${isDark ? 'bg-emerald-500/14 text-emerald-200' : 'bg-slate-950 text-white'}`}>
@@ -92,7 +178,16 @@ function AppShell({ title, description, actions, children }) {
                 <p className={`mt-1 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Jobs, candidates, and decisions</p>
               </div>
             </Link>
-            <ThemeToggle isDark={isDark} onToggle={toggleTheme} className="justify-self-end px-3" />
+            <div className="flex items-center gap-2">
+              <ThemeToggle isDark={isDark} onToggle={toggleTheme} className="hidden xl:inline-flex" />
+              <button
+                className="btn-secondary btn-compact px-3 xl:hidden"
+                type="button"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
 
           <div className={`mt-6 rounded-[22px] border p-4 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
@@ -154,7 +249,7 @@ function AppShell({ title, description, actions, children }) {
             <p className={`text-[0.68rem] font-semibold uppercase tracking-[0.22em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               Main Pages
             </p>
-            <nav className="mt-3 flex flex-wrap gap-2">
+            <nav className="mt-3 flex flex-wrap gap-2 xl:flex-col xl:items-start">
               {workspaceLinks.map((link) => (
                 <NavLink key={link.to} className={workspaceLinkClassName} end={link.end} to={link.to}>
                   {link.label}
@@ -178,7 +273,7 @@ function AppShell({ title, description, actions, children }) {
         </aside>
 
         <div className="flex min-w-0 flex-col gap-4">
-          <header className={`workflow-header ${isDark ? 'border-[#1E293B] bg-[#0F172A]' : 'border-slate-200 bg-white'}`}>
+          <header className={`workflow-header hidden xl:block ${isDark ? 'border-[#1E293B] bg-[#0F172A]' : 'border-slate-200 bg-white'}`}>
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
                 <p className={`text-[0.72rem] font-semibold uppercase tracking-[0.26em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>

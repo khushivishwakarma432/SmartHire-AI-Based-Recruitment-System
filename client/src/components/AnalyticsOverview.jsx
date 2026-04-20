@@ -355,7 +355,7 @@ function AnalyticsOverview({ summary, candidates, scoresByCandidate, isLoading }
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Top Candidates</p>
               <h2 className="mt-1.5 text-base font-semibold text-slate-950 dark:text-white">Highest scoring candidates right now</h2>
             </div>
-            <Link to="/candidates" className="btn-secondary">
+            <Link to="/candidates" className="btn-secondary w-full sm:w-auto">
               Open Candidate List
             </Link>
           </div>
@@ -411,7 +411,7 @@ function AnalyticsOverview({ summary, candidates, scoresByCandidate, isLoading }
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Upcoming Interviews</p>
                 <h2 className="mt-1.5 text-base font-semibold text-slate-950 dark:text-white">What is scheduled next</h2>
               </div>
-              <Link to="/interviews" className="btn-secondary">
+              <Link to="/interviews" className="btn-secondary w-full sm:w-auto">
                 Calendar
               </Link>
             </div>

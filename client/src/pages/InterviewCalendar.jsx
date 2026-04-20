@@ -377,93 +377,97 @@ function InterviewCalendar() {
             </div>
           ) : (
             <div className="panel p-3">
-              <div className="grid grid-cols-7 gap-1.5">
-                {DAY_LABELS.map((label) => (
-                  <div
-                    key={label}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400"
-                  >
-                    {label}
+              <div className="overflow-x-auto pb-1">
+                <div className="min-w-[42rem]">
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {DAY_LABELS.map((label) => (
+                      <div
+                        key={label}
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400"
+                      >
+                        {label}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              <div className="mt-1.5 grid grid-cols-7 gap-1.5">
-                {monthDays.map((date) => {
-                  const dateKey = getDateKey(date);
-                  const dayEvents = interviewsByDate[dateKey] || [];
-                  const isCurrentMonth = date.getMonth() === monthDate.getMonth();
-                  const isToday =
-                    date.getFullYear() === today.getFullYear() &&
-                    date.getMonth() === today.getMonth() &&
-                    date.getDate() === today.getDate();
-                  const visibleEvents = dayEvents.slice(0, 2);
-                  const remainingCount = dayEvents.length - visibleEvents.length;
+                  <div className="mt-1.5 grid grid-cols-7 gap-1.5">
+                    {monthDays.map((date) => {
+                      const dateKey = getDateKey(date);
+                      const dayEvents = interviewsByDate[dateKey] || [];
+                      const isCurrentMonth = date.getMonth() === monthDate.getMonth();
+                      const isToday =
+                        date.getFullYear() === today.getFullYear() &&
+                        date.getMonth() === today.getMonth() &&
+                        date.getDate() === today.getDate();
+                      const visibleEvents = dayEvents.slice(0, 2);
+                      const remainingCount = dayEvents.length - visibleEvents.length;
 
-                  return (
-                    <div
-                      key={dateKey}
-                      className={`min-h-[104px] rounded-[16px] border p-1.5 ${
-                        isCurrentMonth
-                          ? 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950/70'
-                          : 'border-slate-200/70 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/35'
-                      } ${dayEvents.length ? 'ring-1 ring-emerald-400/20' : ''}`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${
-                            isToday
-                              ? 'bg-emerald-500 text-white'
-                              : isCurrentMonth
-                                ? 'text-slate-700 dark:text-slate-200'
-                                : 'text-slate-400 dark:text-slate-500'
-                          }`}
+                      return (
+                        <div
+                          key={dateKey}
+                          className={`min-h-[104px] rounded-[16px] border p-1.5 ${
+                            isCurrentMonth
+                              ? 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950/70'
+                              : 'border-slate-200/70 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/35'
+                          } ${dayEvents.length ? 'ring-1 ring-emerald-400/20' : ''}`}
                         >
-                          {date.getDate()}
-                        </span>
-                        {dayEvents.length ? <span className="badge-muted">{dayEvents.length}</span> : null}
-                      </div>
-
-                      <div className="mt-1.5 space-y-1">
-                        {visibleEvents.map((candidate) => (
-                          <button
-                            key={candidate._id}
-                            className="flex w-full flex-col rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1 text-left transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-emerald-500/40 dark:hover:bg-slate-800"
-                            type="button"
-                            onClick={() =>
-                              openInterviewModal(
-                                [candidate],
-                                `${candidate.fullName || 'Candidate'} interview`,
-                              )
-                            }
-                          >
-                            <span className="truncate text-[10px] font-semibold leading-4 text-slate-900 dark:text-white">
-                              {candidate.fullName || 'Candidate'}
+                          <div className="flex items-center justify-between gap-2">
+                            <span
+                              className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${
+                                isToday
+                                  ? 'bg-emerald-500 text-white'
+                                  : isCurrentMonth
+                                    ? 'text-slate-700 dark:text-slate-200'
+                                    : 'text-slate-400 dark:text-slate-500'
+                              }`}
+                            >
+                              {date.getDate()}
                             </span>
-                            <span className="text-[9px] leading-4 text-slate-500 dark:text-slate-400">
-                              {candidate.interviewTime || 'Time not set'}
-                            </span>
-                          </button>
-                        ))}
+                            {dayEvents.length ? <span className="badge-muted">{dayEvents.length}</span> : null}
+                          </div>
 
-                        {remainingCount > 0 ? (
-                          <button
-                            className="inline-flex min-h-[24px] items-center rounded-lg border border-dashed border-slate-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 transition hover:border-emerald-400 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-emerald-500/50 dark:hover:text-emerald-300"
-                            type="button"
-                            onClick={() =>
-                              openInterviewModal(
-                                dayEvents,
-                                `${date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} interviews`,
-                              )
-                            }
-                          >
-                            +{remainingCount} more
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
+                          <div className="mt-1.5 space-y-1">
+                            {visibleEvents.map((candidate) => (
+                              <button
+                                key={candidate._id}
+                                className="flex w-full flex-col rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1 text-left transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-emerald-500/40 dark:hover:bg-slate-800"
+                                type="button"
+                                onClick={() =>
+                                  openInterviewModal(
+                                    [candidate],
+                                    `${candidate.fullName || 'Candidate'} interview`,
+                                  )
+                                }
+                              >
+                                <span className="truncate text-[10px] font-semibold leading-4 text-slate-900 dark:text-white">
+                                  {candidate.fullName || 'Candidate'}
+                                </span>
+                                <span className="text-[9px] leading-4 text-slate-500 dark:text-slate-400">
+                                  {candidate.interviewTime || 'Time not set'}
+                                </span>
+                              </button>
+                            ))}
+
+                            {remainingCount > 0 ? (
+                              <button
+                                className="inline-flex min-h-[24px] items-center rounded-lg border border-dashed border-slate-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 transition hover:border-emerald-400 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-emerald-500/50 dark:hover:text-emerald-300"
+                                type="button"
+                                onClick={() =>
+                                  openInterviewModal(
+                                    dayEvents,
+                                    `${date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} interviews`,
+                                  )
+                                }
+                              >
+                                +{remainingCount} more
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -532,7 +536,7 @@ function InterviewCalendar() {
       </div>
 
       {modalState.isOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 px-4 py-4 backdrop-blur-sm sm:items-center sm:py-6">
           <div className="w-full max-w-2xl rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-950">
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
               <div className="min-w-0">
@@ -546,7 +550,7 @@ function InterviewCalendar() {
               </button>
             </div>
 
-            <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
+            <div className="max-h-[min(78vh,38rem)] overflow-y-auto px-4 py-4 sm:px-5">
               <div className="space-y-4">
                 {modalState.items.map((candidate) => (
                   <article key={candidate._id} className="rounded-[20px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/70">
