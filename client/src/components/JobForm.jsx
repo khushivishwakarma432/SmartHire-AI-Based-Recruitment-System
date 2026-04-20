@@ -187,9 +187,9 @@ function JobForm({ initialValues = defaultValues, onSubmit, isSubmitting, submit
       {validationError ? <p className="alert-error">{validationError}</p> : null}
       {error ? <p className="alert-error">{error}</p> : null}
 
-      <div className="flex justify-end border-t border-slate-200 pt-2">
+      <div className="flex justify-stretch border-t border-slate-200 pt-2 sm:justify-end">
         <button
-          className="btn-primary disabled:cursor-not-allowed disabled:opacity-70"
+          className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
           type="submit"
           disabled={isSubmitting}
         >

@@ -55,11 +55,11 @@ function ProtectedRoute() {
   }, [token]);
 
   if (!token) {
-    return <Navigate to="/" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;
+    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;
   }
 
   if (status === 'unauthorized') {
-    return <Navigate to="/" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;
+    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;
   }
 
   if (status === 'checking') {

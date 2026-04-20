@@ -11,6 +11,7 @@ import EditJob from './pages/EditJob';
 import JobDetails from './pages/JobDetails';
 import JobsList from './pages/JobsList';
 import InterviewCalendar from './pages/InterviewCalendar';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 import Pipeline from './pages/Pipeline';
@@ -21,9 +22,9 @@ import UploadCandidate from './pages/UploadCandidate';
 function App() {
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route element={<PublicOnlyRoute />}>
         <Route element={<AuthLayout />}>
-          <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
         </Route>
