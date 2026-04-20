@@ -43,7 +43,7 @@ const supportTopics = [
     answer:
       'First confirm the backend is running and your credentials are correct. If the page keeps returning to login, try signing out fully, then log back in so SmartHire can refresh the saved session token.',
     actionLabel: 'Open login',
-    actionTo: '/',
+    actionTo: '/login',
   },
   {
     id: 'upload-failed',

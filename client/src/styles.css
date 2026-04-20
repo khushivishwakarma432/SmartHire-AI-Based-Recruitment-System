@@ -1092,6 +1092,72 @@
     color: var(--app-text);
   }
 
+  .product-footer-inner {
+    @apply mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10;
+  }
+
+  .product-footer-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(160px, 0.8fr) minmax(220px, 0.95fr);
+    align-items: start;
+    gap: 2.5rem;
+  }
+
+  .product-footer-brand {
+    min-width: 0;
+    max-width: 34rem;
+  }
+
+  .product-footer-brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .product-footer-tagline {
+    margin-top: 0.75rem;
+    max-width: 34rem;
+    font-size: 0.875rem;
+    line-height: 1.75;
+    color: var(--app-text-muted);
+  }
+
+  .product-footer-column {
+    min-width: 0;
+  }
+
+  .product-footer-links {
+    justify-self: center;
+    text-align: left;
+  }
+
+  .product-footer-link-list {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .product-footer-contact {
+    justify-self: end;
+    text-align: left;
+  }
+
+  .product-footer-contact-row {
+    margin-top: 0.75rem;
+  }
+
+  .product-footer-rule {
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--app-border);
+  }
+
+  .product-footer-bottom {
+    padding-top: 1rem;
+    font-size: 0.8125rem;
+    color: var(--app-text-muted);
+  }
+
   .product-footer-heading {
     @apply text-[10px] font-semibold uppercase tracking-[0.24em];
     color: var(--app-text-soft);
@@ -1106,21 +1172,30 @@
     color: #22d3ee;
   }
 
-  .product-footer-muted {
-    color: var(--app-text-soft);
+  @media (max-width: 1023px) {
+    .product-footer-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .product-footer-brand,
+    .product-footer-links,
+    .product-footer-contact {
+      max-width: none;
+      justify-self: stretch;
+      text-align: left;
+    }
   }
 
-  .product-footer-icon {
-    @apply inline-flex h-9 w-9 items-center justify-center rounded-full border transition;
-    border-color: var(--app-border);
-    background: var(--app-surface);
-    color: var(--app-text-muted);
-  }
+  @media (max-width: 639px) {
+    .product-footer-inner {
+      padding-top: 1.75rem;
+      padding-bottom: 1.75rem;
+    }
 
-  .product-footer-icon:hover {
-    border-color: #22d3ee;
-    color: #22d3ee;
-    background: var(--app-surface-soft);
+    .product-footer-brand-lockup {
+      justify-content: flex-start;
+    }
   }
 
   .marketing-reveal {

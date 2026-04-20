@@ -23,6 +23,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/features" element={<Navigate replace to="/#features" />} />
       <Route element={<PublicOnlyRoute />}>
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />

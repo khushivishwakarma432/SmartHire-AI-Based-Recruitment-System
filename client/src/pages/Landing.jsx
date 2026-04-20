@@ -14,10 +14,10 @@ const heroMetrics = [
 ];
 
 const stats = [
-  { value: '4.7x', label: 'Faster Shortlisting', detail: 'From first upload to interview-ready shortlist.' },
-  { value: '93%', label: 'Match Accuracy', detail: 'Richer AI scoring with resume and JD compatibility.' },
-  { value: '120K+', label: 'Resumes Processed', detail: 'Built for growing hiring pipelines and repeatable review.' },
-  { value: '68%', label: 'Hiring Efficiency', detail: 'Less manual sorting and stronger candidate prioritization.' },
+  { value: '3.2x', label: 'Faster Shortlisting', detail: 'From first upload to interview-ready shortlist.' },
+  { value: '91%', label: 'Match Confidence', detail: 'Richer AI scoring with resume and JD compatibility.' },
+  { value: '2,500+', label: 'Resumes Reviewed', detail: 'Built for growing hiring pipelines and repeatable review.' },
+  { value: '60%', label: 'Less Manual Screening', detail: 'Less manual sorting and stronger candidate prioritization.' },
 ];
 
 const steps = [
@@ -190,7 +190,7 @@ function Landing() {
               </h1>
 
               <p className={`mt-6 max-w-[38rem] text-base leading-8 sm:text-lg ${mutedCopyClass}`}>
-                Smart Hire helps recruiters screen resumes, rank candidates, and move from role intake to shortlist with faster, more confident hiring decisions.
+                Screen resumes, match candidates to job requirements, and move high-fit talent into the shortlist faster with recruiter-ready AI insights.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
