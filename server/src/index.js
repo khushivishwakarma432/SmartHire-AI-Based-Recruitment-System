@@ -4,6 +4,7 @@ dotenv.config();
 
 const app = require('./app');
 const connectDB = require('./config/db');
+const { ensureDemoData } = require('./scripts/seedDemoData');
 
 const PORT = process.env.PORT || 5000;
 const REQUIRED_ENV_VARS = ['MONGODB_URI', 'JWT_SECRET'];
@@ -24,6 +25,11 @@ const startServer = async () => {
     }
 
     await connectDB();
+    try {
+      await ensureDemoData();
+    } catch (seedError) {
+      console.warn(`Demo seed skipped: ${seedError.message}`);
+    }
 
     const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

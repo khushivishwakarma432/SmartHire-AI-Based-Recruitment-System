@@ -6,3 +6,6 @@ dist/
 .next/
 out/
 coverage/
+*.log
+server/uploads/*
+!server/uploads/parser-smoke-test.pdf

@@ -2,6 +2,7 @@ const { GoogleGenAI } = require('@google/genai');
 
 const buildScoreCandidatePrompt = require('../prompts/scoreCandidatePrompt');
 const {
+  buildCandidateEvidenceText,
   inferSkillMatches,
   mapSkillsToRequiredSkills,
   normalizeRequiredSkills,
@@ -70,6 +71,35 @@ const buildFallbackSummary = ({ score, matchedSkills, missingSkills }) => {
     : 'No major missing skills were highlighted.';
 
   return `The candidate shows ${fitLabel} alignment with the role based on the submitted resume and job requirements. ${matchedText} ${missingText}`;
+};
+
+const clampScore = (value) => Math.max(0, Math.min(100, Math.round(value)));
+
+const generateHeuristicCandidateScore = ({ candidate, job, reason }) => {
+  const requiredSkills = normalizeRequiredSkills(job?.requiredSkills);
+  const heuristicSkillMatch = inferSkillMatches({
+    requiredSkills,
+    candidate,
+  });
+  const matchedSkills = heuristicSkillMatch.matchedSkills;
+  const missingSkills = heuristicSkillMatch.missingSkills;
+  const evidenceText = buildCandidateEvidenceText(candidate);
+  const hasEvidence = Boolean(String(evidenceText || '').trim());
+  const skillRatio = requiredSkills.length ? matchedSkills.length / requiredSkills.length : 0.5;
+  const evidenceBoost = hasEvidence ? 12 : 0;
+  const summaryBoost = String(candidate?.candidateSummary || '').trim() ? 8 : 0;
+  const skillsBoost = Array.isArray(candidate?.candidateSkills) && candidate.candidateSkills.length ? 10 : 0;
+  const score = clampScore(skillRatio * 70 + evidenceBoost + summaryBoost + skillsBoost);
+  const summaryReason =
+    reason ||
+    'Gemini AI scoring is unavailable, so SmartHire used its built-in skill matching fallback for this result.';
+
+  return {
+    score,
+    matchedSkills,
+    missingSkills,
+    summary: `${summaryReason} ${buildFallbackSummary({ score, matchedSkills, missingSkills })}`.trim(),
+  };
 };
 
 const validateScoreResponse = (payload, { candidate, job }) => {
@@ -181,6 +211,15 @@ const parseGeminiJsonResponse = (outputText) => {
 };
 
 const generateCandidateScore = async ({ candidate, job }) => {
+  if (!process.env.GEMINI_API_KEY) {
+    return generateHeuristicCandidateScore({
+      candidate,
+      job,
+      reason:
+        'Gemini AI scoring is not configured, so SmartHire used its built-in skill matching fallback for this result.',
+    });
+  }
+
   try {
     const client = getClient();
     const prompt = buildScoreCandidatePrompt({ candidate, job });
@@ -227,13 +266,24 @@ const generateCandidateScore = async ({ candidate, job }) => {
 
     return validateScoreResponse(parsedOutput, { candidate, job });
   } catch (error) {
+    if (error.statusCode === 503 || error.statusCode === 504) {
+      return generateHeuristicCandidateScore({
+        candidate,
+        job,
+        reason:
+          'Gemini AI scoring was temporarily unavailable, so SmartHire used its built-in skill matching fallback for this result.',
+      });
+    }
+
     if (error.statusCode) {
       throw error;
     }
 
-    const apiError = new Error(`Gemini scoring request failed: ${error.message}`);
-    apiError.statusCode = 502;
-    throw apiError;
+    return generateHeuristicCandidateScore({
+      candidate,
+      job,
+      reason: `Gemini AI scoring could not complete (${error.message}), so SmartHire used its built-in skill matching fallback for this result.`,
+    });
   }
 };
 

@@ -44,6 +44,11 @@ Start backend:
 npm run dev
 ```
 
+Seed the demo recruiter, jobs, candidates, and scores:
+```bash
+npm run seed:demo
+```
+
 ### 2) Frontend
 ```bash
 cd client
@@ -104,4 +109,8 @@ npm run dev
 ## Production Readiness Notes
 - The backend uses `CLIENT_URL` for CORS and supports comma-separated origins.
 - The frontend uses `VITE_API_BASE_URL` for all API calls.
-- Ensure `GEMINI_API_KEY` is set in production to enable AI scoring.
+- If `GEMINI_API_KEY` is missing or temporarily unavailable, SmartHire falls back to built-in skill matching so demo scoring still works.
+
+## Demo Account
+- Email: `demo@smarthire.com`
+- Password: `Demo@123`
