@@ -404,14 +404,14 @@ function AnalyticsOverview({ summary, candidates, scoresByCandidate, isLoading }
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-start justify-between gap-3">
-              <div>
+        <div className="min-w-0 max-w-full space-y-4 overflow-hidden">
+          <div className="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex min-w-0 max-w-full flex-col gap-3 overflow-hidden sm:flex-row sm:items-start sm:justify-between">
+              <div className="w-full min-w-0 max-w-full">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Upcoming Interviews</p>
                 <h2 className="mt-1.5 text-base font-semibold text-slate-950 dark:text-white">What is scheduled next</h2>
               </div>
-              <Link to="/interviews" className="btn-secondary w-full sm:w-auto">
+              <Link to="/interviews" className="btn-secondary w-full max-w-full min-w-0 justify-center sm:w-auto">
                 Calendar
               </Link>
             </div>

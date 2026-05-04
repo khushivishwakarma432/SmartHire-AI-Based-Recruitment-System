@@ -453,6 +453,12 @@
     color-scheme: inherit;
   }
 
+  .input-field[type='date'],
+  .input-field[type='time'] {
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .input-field::placeholder {
     color: var(--app-text-soft);
   }

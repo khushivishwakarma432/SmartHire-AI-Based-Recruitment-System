@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import {
@@ -14,7 +14,6 @@ import { generateScore, getLatestScores } from '../api/scores';
 import AppShell from '../components/AppShell';
 import { useToast } from '../components/ToastProvider';
 import { withApiBase } from '../api/baseUrl';
-import { downloadCandidateReportPdf } from '../utils/candidateReportPdf';
 import { isUnauthorizedError, removeToken } from '../utils/auth';
 
 const SCORE_STORAGE_KEY = 'smarthire_candidate_scores';
@@ -29,6 +28,8 @@ const SUGGESTED_CANDIDATE_TAGS = [
   'Good Culture Fit',
   'Priority',
 ];
+
+const loadCandidateReportPdf = () => import('../utils/candidateReportPdf');
 
 const getStoredScores = () => {
   try {
@@ -1061,76 +1062,93 @@ function CandidatesList() {
           ? 'Ready to compare 2 selected candidates.'
           : 'Ready to compare 3 selected candidates.';
 
-  const availableCandidateTags = normalizeCandidateTags([
-    ...SUGGESTED_CANDIDATE_TAGS,
-    ...candidates.flatMap((candidate) => (Array.isArray(candidate.tags) ? candidate.tags : [])),
-  ]);
+  const availableCandidateTags = useMemo(
+    () =>
+      normalizeCandidateTags([
+        ...SUGGESTED_CANDIDATE_TAGS,
+        ...candidates.flatMap((candidate) => (Array.isArray(candidate.tags) ? candidate.tags : [])),
+      ]),
+    [candidates],
+  );
 
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
-  const filteredCandidates = candidates.filter((candidate) => {
-    const searchMatches =
-      !normalizedSearchTerm ||
-      [candidate.fullName, candidate.email, candidate.appliedJob?.title]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(normalizedSearchTerm));
+  const filteredCandidates = useMemo(
+    () =>
+      candidates.filter((candidate) => {
+        const searchMatches =
+          !normalizedSearchTerm ||
+          [candidate.fullName, candidate.email, candidate.appliedJob?.title]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(normalizedSearchTerm));
 
-    const scoreEntry = scoresByCandidate[candidate._id];
-    const fitTagMatches =
-      !selectedFitTag ||
-      (scoreEntry && getRecommendation(scoreEntry.score).label === selectedFitTag);
+        const scoreEntry = scoresByCandidate[candidate._id];
+        const fitTagMatches =
+          !selectedFitTag ||
+          (scoreEntry && getRecommendation(scoreEntry.score).label === selectedFitTag);
 
-    const recruiterStatusMatches =
-      !selectedRecruiterStatus ||
-      normalizeRecruiterStatus(candidate.recruiterStatus) === selectedRecruiterStatus;
+        const recruiterStatusMatches =
+          !selectedRecruiterStatus ||
+          normalizeRecruiterStatus(candidate.recruiterStatus) === selectedRecruiterStatus;
 
-    const candidateTagMatches =
-      !selectedCandidateTag ||
-      normalizeCandidateTags(candidate.tags).some(
-        (tag) => tag.toLowerCase() === selectedCandidateTag.toLowerCase(),
-      );
+        const candidateTagMatches =
+          !selectedCandidateTag ||
+          normalizeCandidateTags(candidate.tags).some(
+            (tag) => tag.toLowerCase() === selectedCandidateTag.toLowerCase(),
+          );
 
-    return searchMatches && fitTagMatches && recruiterStatusMatches && candidateTagMatches;
-  });
+        return searchMatches && fitTagMatches && recruiterStatusMatches && candidateTagMatches;
+      }),
+    [
+      candidates,
+      normalizedSearchTerm,
+      scoresByCandidate,
+      selectedCandidateTag,
+      selectedFitTag,
+      selectedRecruiterStatus,
+    ],
+  );
 
-  const sortedCandidates = [...filteredCandidates].sort((firstCandidate, secondCandidate) => {
-    const firstScore = scoresByCandidate[firstCandidate._id]?.score;
-    const secondScore = scoresByCandidate[secondCandidate._id]?.score;
-    const firstStatus = normalizeRecruiterStatus(firstCandidate.recruiterStatus);
-    const secondStatus = normalizeRecruiterStatus(secondCandidate.recruiterStatus);
-    const recruiterStatusOrder = {
-      Shortlisted: 0,
-      'Pending Review': 1,
-      'On Hold': 2,
-      Rejected: 3,
-    };
+  const sortedCandidates = useMemo(() => {
+    return [...filteredCandidates].sort((firstCandidate, secondCandidate) => {
+      const firstScore = scoresByCandidate[firstCandidate._id]?.score;
+      const secondScore = scoresByCandidate[secondCandidate._id]?.score;
+      const firstStatus = normalizeRecruiterStatus(firstCandidate.recruiterStatus);
+      const secondStatus = normalizeRecruiterStatus(secondCandidate.recruiterStatus);
+      const recruiterStatusOrder = {
+        Shortlisted: 0,
+        'Pending Review': 1,
+        'On Hold': 2,
+        Rejected: 3,
+      };
 
-    if (sortBy === 'score') {
-      if (typeof firstScore === 'number' && typeof secondScore === 'number') {
-        return secondScore - firstScore;
+      if (sortBy === 'score') {
+        if (typeof firstScore === 'number' && typeof secondScore === 'number') {
+          return secondScore - firstScore;
+        }
+
+        if (typeof firstScore === 'number') {
+          return -1;
+        }
+
+        if (typeof secondScore === 'number') {
+          return 1;
+        }
+
+        return new Date(secondCandidate.uploadedAt) - new Date(firstCandidate.uploadedAt);
       }
 
-      if (typeof firstScore === 'number') {
-        return -1;
-      }
+      if (sortBy === 'recruiterStatus') {
+        const firstOrder = recruiterStatusOrder[firstStatus] ?? 99;
+        const secondOrder = recruiterStatusOrder[secondStatus] ?? 99;
 
-      if (typeof secondScore === 'number') {
-        return 1;
+        if (firstOrder !== secondOrder) {
+          return firstOrder - secondOrder;
+        }
       }
 
       return new Date(secondCandidate.uploadedAt) - new Date(firstCandidate.uploadedAt);
-    }
-
-    if (sortBy === 'recruiterStatus') {
-      const firstOrder = recruiterStatusOrder[firstStatus] ?? 99;
-      const secondOrder = recruiterStatusOrder[secondStatus] ?? 99;
-
-      if (firstOrder !== secondOrder) {
-        return firstOrder - secondOrder;
-      }
-    }
-
-    return new Date(secondCandidate.uploadedAt) - new Date(firstCandidate.uploadedAt);
-  });
+    });
+  }, [filteredCandidates, scoresByCandidate, sortBy]);
 
   const handleDownloadReport = async (candidate) => {
     const scoreEntry = scoresByCandidate[candidate._id];
@@ -1147,6 +1165,7 @@ function CandidatesList() {
     }));
 
     try {
+      const { downloadCandidateReportPdf } = await loadCandidateReportPdf();
       await downloadCandidateReportPdf({
         candidate,
         scoreEntry,
@@ -1524,12 +1543,12 @@ function CandidatesList() {
           ) : null}
 
           <div className="grid gap-4 md:grid-cols-2 xl:gap-5">
-            <div className="space-y-2.5">
+            <div className="min-w-0 space-y-2.5">
               <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Interview Date
               </label>
               <input
-                className="input-field min-h-[48px]"
+                className="input-field min-h-[48px] max-w-full"
                 type="date"
                 value={interviewDraft.interviewDate}
                 onChange={(event) =>
@@ -1537,12 +1556,12 @@ function CandidatesList() {
                 }
               />
             </div>
-            <div className="space-y-2.5">
+            <div className="min-w-0 space-y-2.5">
               <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Interview Time
               </label>
               <input
-                className="input-field min-h-[48px]"
+                className="input-field min-h-[48px] max-w-full"
                 type="time"
                 value={interviewDraft.interviewTime}
                 onChange={(event) =>
@@ -2606,12 +2625,12 @@ function CandidatesList() {
                                   ) : null}
 
                                   <div className="grid gap-4 md:grid-cols-2 xl:gap-5">
-                                    <div className="space-y-2.5">
+                                    <div className="min-w-0 space-y-2.5">
                                       <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                                         Interview Date
                                       </label>
                                       <input
-                                        className="input-field min-h-[48px]"
+                                        className="input-field min-h-[48px] max-w-full"
                                         type="date"
                                         value={interviewDraft.interviewDate}
                                         onChange={(event) =>
@@ -2619,12 +2638,12 @@ function CandidatesList() {
                                         }
                                       />
                                     </div>
-                                    <div className="space-y-2.5">
+                                    <div className="min-w-0 space-y-2.5">
                                       <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                                         Interview Time
                                       </label>
                                       <input
-                                        className="input-field min-h-[48px]"
+                                        className="input-field min-h-[48px] max-w-full"
                                         type="time"
                                         value={interviewDraft.interviewTime}
                                         onChange={(event) =>

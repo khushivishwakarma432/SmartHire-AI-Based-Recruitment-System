@@ -237,29 +237,29 @@ function InterviewCalendar() {
       title="Interview Calendar"
       description="View and manage scheduled interviews in one monthly calendar."
       actions={
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full max-w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
           <button
-            className="btn-secondary btn-compact"
+            className="btn-secondary btn-compact w-full max-w-full min-w-0 justify-center sm:w-auto"
             type="button"
             onClick={() => setMonthDate((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
           >
             Previous Month
           </button>
           <button
-            className="btn-secondary btn-compact"
+            className="btn-secondary btn-compact w-full max-w-full min-w-0 justify-center sm:w-auto"
             type="button"
             onClick={() => setMonthDate(new Date(today.getFullYear(), today.getMonth(), 1))}
           >
             Today
           </button>
           <button
-            className="btn-secondary btn-compact"
+            className="btn-secondary btn-compact w-full max-w-full min-w-0 justify-center sm:w-auto"
             type="button"
             onClick={() => setMonthDate((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
           >
             Next Month
           </button>
-          <Link className="btn-primary btn-compact" to="/candidates">
+          <Link className="btn-primary btn-compact w-full max-w-full min-w-0 justify-center sm:w-auto" to="/candidates">
             Schedule an Interview
           </Link>
         </div>
@@ -285,8 +285,8 @@ function InterviewCalendar() {
                 </p>
               </div>
 
-              <div className="grid gap-2.5 xl:grid-cols-[minmax(0,210px)_minmax(0,210px)_minmax(0,170px)_auto] xl:items-end">
-                <label className="block w-full">
+              <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-[minmax(0,210px)_minmax(0,210px)_minmax(0,170px)_auto] xl:items-end">
+                <label className="block w-full min-w-0">
                   <span className="field-label mb-1">Filter by job</span>
                   <select className="input-field" value={selectedJob} onChange={(event) => setSelectedJob(event.target.value)}>
                     <option value="">All jobs</option>
@@ -298,7 +298,7 @@ function InterviewCalendar() {
                   </select>
                 </label>
 
-                <label className="block w-full">
+                <label className="block w-full min-w-0">
                   <span className="field-label mb-1">Filter by candidate</span>
                   <select
                     className="input-field"
@@ -314,7 +314,7 @@ function InterviewCalendar() {
                   </select>
                 </label>
 
-                <label className="block w-full">
+                <label className="block w-full min-w-0">
                   <span className="field-label mb-1">Interview status</span>
                   <select className="input-field" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>
                     <option value="">All statuses</option>
@@ -324,7 +324,7 @@ function InterviewCalendar() {
                   </select>
                 </label>
 
-                <div className="flex flex-wrap gap-2 xl:justify-end">
+                <div className="flex flex-wrap gap-2 sm:col-span-2 xl:col-span-1 xl:justify-end">
                   <button className="btn-secondary btn-compact" type="button" onClick={resetFilters}>
                     Reset Filters
                   </button>
@@ -377,20 +377,20 @@ function InterviewCalendar() {
             </div>
           ) : (
             <div className="panel p-3">
-              <div className="overflow-x-auto pb-1">
-                <div className="min-w-[42rem]">
-                  <div className="grid grid-cols-7 gap-1.5">
+              <div className="max-w-full pb-1">
+                <div className="w-full max-w-full min-w-0">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
                     {DAY_LABELS.map((label) => (
                       <div
                         key={label}
-                        className="rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400"
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-1 py-1.5 text-center text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400 sm:px-1.5 sm:text-[10px] sm:tracking-[0.14em]"
                       >
                         {label}
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-1.5 grid grid-cols-7 gap-1.5">
+                  <div className="mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
                     {monthDays.map((date) => {
                       const dateKey = getDateKey(date);
                       const dayEvents = interviewsByDate[dateKey] || [];
@@ -405,7 +405,7 @@ function InterviewCalendar() {
                       return (
                         <div
                           key={dateKey}
-                          className={`min-h-[104px] rounded-[16px] border p-1.5 ${
+                          className={`min-h-[92px] min-w-0 rounded-[16px] border p-1 sm:min-h-[104px] sm:p-1.5 ${
                             isCurrentMonth
                               ? 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950/70'
                               : 'border-slate-200/70 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/35'

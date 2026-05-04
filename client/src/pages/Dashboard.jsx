@@ -1,6 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getCurrentUser } from '../api/auth';
 import { getCandidates } from '../api/candidates';
 import { getDashboardSummary } from '../api/dashboard';
 import { getLatestScores } from '../api/scores';
@@ -130,7 +129,6 @@ const formatInterviewDate = (date, time) => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
   const [summary, setSummary] = useState(FALLBACK_SUMMARY);
   const [candidates, setCandidates] = useState([]);
   const [scoresByCandidate, setScoresByCandidate] = useState({});
@@ -152,42 +150,8 @@ const Dashboard = () => {
       setError('');
 
       try {
-        const currentUser = await getCurrentUser(token);
-        if (!isMounted) {
-          return;
-        }
-        setUser(currentUser);
-      } catch (currentUserError) {
-        if (!isMounted) {
-          return;
-        }
-
-        if (isUnauthorizedError(currentUserError)) {
-          removeToken();
-          navigate('/login', { replace: true });
-          return;
-        }
-
-        setError(currentUserError.message || 'We could not verify your session.');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const summaryPayload = await getDashboardSummary();
-        if (isMounted) {
-          setSummary(normalizeSummary(summaryPayload));
-        }
-      } catch (summaryError) {
-        if (!isMounted) {
-          return;
-        }
-        setSummary(FALLBACK_SUMMARY);
-        setError(summaryError.message || 'Dashboard summary is unavailable right now.');
-      }
-
-      try {
-        const [candidatesPayload, latestScoresPayload] = await Promise.all([
+        const [summaryResult, candidatesResult, latestScoresResult] = await Promise.allSettled([
+          getDashboardSummary(),
           getCandidates(),
           getLatestScores(),
         ]);
@@ -196,6 +160,25 @@ const Dashboard = () => {
           return;
         }
 
+        const authFailure = [summaryResult, candidatesResult, latestScoresResult]
+          .filter((result) => result.status === 'rejected')
+          .map((result) => result.reason)
+          .find((requestError) => isUnauthorizedError(requestError));
+
+        if (authFailure) {
+          removeToken();
+          navigate('/login', { replace: true });
+          return;
+        }
+
+        if (summaryResult.status === 'fulfilled') {
+          setSummary(normalizeSummary(summaryResult.value));
+        } else {
+          setSummary(FALLBACK_SUMMARY);
+        }
+
+        const candidatesPayload = candidatesResult.status === 'fulfilled' ? candidatesResult.value : null;
+        const latestScoresPayload = latestScoresResult.status === 'fulfilled' ? latestScoresResult.value : null;
         const normalizedCandidates = Array.isArray(candidatesPayload?.candidates)
           ? candidatesPayload.candidates
           : Array.isArray(candidatesPayload)
@@ -215,22 +198,15 @@ const Dashboard = () => {
               accumulator[String(key)] = scoreEntry;
             }
             return accumulator;
-          }, {})
+          }, {}),
         );
-      } catch (dataError) {
-        if (!isMounted) {
-          return;
-        }
 
-        if (isUnauthorizedError(dataError)) {
-          removeToken();
-          navigate('/login', { replace: true });
-          return;
-        }
+        const nextErrors = [summaryResult, candidatesResult, latestScoresResult]
+          .filter((result) => result.status === 'rejected')
+          .map((result) => result.reason?.message)
+          .filter(Boolean);
 
-        setCandidates((current) => current ?? []);
-        setScoresByCandidate((current) => current ?? {});
-        setError((current) => current || dataError.message || 'Dashboard details are unavailable right now.');
+        setError(nextErrors[0] || '');
       } finally {
         if (isMounted) {
           setIsLoading(false);

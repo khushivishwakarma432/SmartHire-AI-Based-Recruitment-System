@@ -73,6 +73,33 @@ const buildFallbackSummary = ({ score, matchedSkills, missingSkills }) => {
   return `The candidate shows ${fitLabel} alignment with the role based on the submitted resume and job requirements. ${matchedText} ${missingText}`;
 };
 
+const buildGeminiFallbackReason = (error) => {
+  if (!error) {
+    return 'Gemini AI scoring was unavailable, so SmartHire used its built-in skill matching fallback for this result.';
+  }
+
+  const statusCode = error?.status || error?.statusCode || error?.code;
+  const message = String(error?.message || '').trim();
+
+  if (statusCode === 401 || statusCode === '401' || statusCode === 403 || statusCode === '403') {
+    return 'Gemini AI scoring credentials were rejected, so SmartHire used its built-in skill matching fallback for this result.';
+  }
+
+  if (statusCode === 429 || statusCode === '429' || statusCode === 503 || statusCode === '503') {
+    return 'Gemini AI scoring was temporarily unavailable due to model traffic, so SmartHire used its built-in skill matching fallback for this result.';
+  }
+
+  if (statusCode === 504 || statusCode === '504') {
+    return 'Gemini AI scoring timed out, so SmartHire used its built-in skill matching fallback for this result.';
+  }
+
+  if (message) {
+    return `Gemini AI scoring could not complete (${message}), so SmartHire used its built-in skill matching fallback for this result.`;
+  }
+
+  return 'Gemini AI scoring could not complete, so SmartHire used its built-in skill matching fallback for this result.';
+};
+
 const clampScore = (value) => Math.max(0, Math.min(100, Math.round(value)));
 
 const generateHeuristicCandidateScore = ({ candidate, job, reason }) => {
@@ -266,23 +293,10 @@ const generateCandidateScore = async ({ candidate, job }) => {
 
     return validateScoreResponse(parsedOutput, { candidate, job });
   } catch (error) {
-    if (error.statusCode === 503 || error.statusCode === 504) {
-      return generateHeuristicCandidateScore({
-        candidate,
-        job,
-        reason:
-          'Gemini AI scoring was temporarily unavailable, so SmartHire used its built-in skill matching fallback for this result.',
-      });
-    }
-
-    if (error.statusCode) {
-      throw error;
-    }
-
     return generateHeuristicCandidateScore({
       candidate,
       job,
-      reason: `Gemini AI scoring could not complete (${error.message}), so SmartHire used its built-in skill matching fallback for this result.`,
+      reason: buildGeminiFallbackReason(error),
     });
   }
 };
