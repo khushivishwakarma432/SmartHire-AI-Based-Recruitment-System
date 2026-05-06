@@ -6,11 +6,16 @@ const {
   inferSkillMatches,
   mapSkillsToRequiredSkills,
   normalizeRequiredSkills,
+  normalizeText,
   uniqueSkills,
 } = require('../utils/skillMatching');
-const MAX_RETRIES = 3;
-const RETRY_DELAYS_MS = [2000, 3000, 4000];
-const DEFAULT_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS || 20000);
+
+const BACKGROUND_GEMINI_ENABLED =
+  String(process.env.ENABLE_BACKGROUND_GEMINI_SCORING || '').trim().toLowerCase() === 'true';
+const BACKGROUND_GEMINI_TIMEOUT_MS = Math.max(
+  750,
+  Number(process.env.GEMINI_BACKGROUND_TIMEOUT_MS || 2500),
+);
 
 const getClient = () => {
   if (!process.env.GEMINI_API_KEY) {
@@ -61,48 +66,115 @@ const normalizeSkills = (skills) => {
   );
 };
 
-const buildFallbackSummary = ({ score, matchedSkills, missingSkills }) => {
-  const fitLabel = score >= 80 ? 'strong' : score >= 50 ? 'moderate' : 'limited';
-  const matchedText = matchedSkills.length
-    ? `Matched skills include ${matchedSkills.join(', ')}.`
-    : 'The response did not identify clear matched skills.';
-  const missingText = missingSkills.length
-    ? `Missing or less evident skills include ${missingSkills.join(', ')}.`
-    : 'No major missing skills were highlighted.';
-
-  return `The candidate shows ${fitLabel} alignment with the role based on the submitted resume and job requirements. ${matchedText} ${missingText}`;
-};
-
-const buildGeminiFallbackReason = (error) => {
-  if (!error) {
-    return 'Gemini AI scoring was unavailable, so SmartHire used its built-in skill matching fallback for this result.';
-  }
-
-  const statusCode = error?.status || error?.statusCode || error?.code;
-  const message = String(error?.message || '').trim();
-
-  if (statusCode === 401 || statusCode === '401' || statusCode === 403 || statusCode === '403') {
-    return 'Gemini AI scoring credentials were rejected, so SmartHire used its built-in skill matching fallback for this result.';
-  }
-
-  if (statusCode === 429 || statusCode === '429' || statusCode === 503 || statusCode === '503') {
-    return 'Gemini AI scoring was temporarily unavailable due to model traffic, so SmartHire used its built-in skill matching fallback for this result.';
-  }
-
-  if (statusCode === 504 || statusCode === '504') {
-    return 'Gemini AI scoring timed out, so SmartHire used its built-in skill matching fallback for this result.';
-  }
-
-  if (message) {
-    return `Gemini AI scoring could not complete (${message}), so SmartHire used its built-in skill matching fallback for this result.`;
-  }
-
-  return 'Gemini AI scoring could not complete, so SmartHire used its built-in skill matching fallback for this result.';
-};
-
 const clampScore = (value) => Math.max(0, Math.min(100, Math.round(value)));
 
-const generateHeuristicCandidateScore = ({ candidate, job, reason }) => {
+const countWords = (value) => {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    return 0;
+  }
+
+  return normalizedValue.split(' ').filter(Boolean).length;
+};
+
+const getEvidenceSources = (candidate = {}) => {
+  const sources = [];
+
+  if (String(candidate.resumeText || '').trim()) {
+    sources.push('resume text');
+  }
+
+  if (String(candidate.candidateSummary || '').trim()) {
+    sources.push('candidate summary');
+  }
+
+  if (Array.isArray(candidate.candidateSkills) && candidate.candidateSkills.length) {
+    sources.push('listed skills');
+  }
+
+  return sources;
+};
+
+const extractExperienceYears = (value) => {
+  const normalizedValue = normalizeText(value);
+  const match = normalizedValue.match(/\b(\d{1,2})\s*\+?\s*(?:years?|yrs?)\b/);
+
+  if (!match) {
+    return 0;
+  }
+
+  return Math.min(12, Number(match[1]) || 0);
+};
+
+const getRoleSignalBoost = ({ candidate, job }) => {
+  const evidenceText = buildCandidateEvidenceText(candidate);
+  const titleTokens = uniqueSkills(
+    normalizeText(job?.title)
+      .split(' ')
+      .map((token) => token.trim())
+      .filter((token) => token.length >= 4),
+  );
+
+  if (!evidenceText || !titleTokens.length) {
+    return 0;
+  }
+
+  const matchingTokens = titleTokens.filter(
+    (token) =>
+      evidenceText === token ||
+      evidenceText.includes(`${token} `) ||
+      evidenceText.includes(` ${token}`) ||
+      evidenceText.includes(` ${token} `),
+  );
+
+  return Math.min(6, matchingTokens.length * 2);
+};
+
+const getRecommendation = (score) => {
+  if (score >= 80) {
+    return 'Shortlist for the next hiring step.';
+  }
+
+  if (score >= 60) {
+    return 'Move into recruiter review soon.';
+  }
+
+  if (score >= 40) {
+    return 'Review manually for transferable strengths.';
+  }
+
+  return 'Do not prioritize this profile for the current role yet.';
+};
+
+const buildHeuristicSummary = ({
+  candidate,
+  job,
+  score,
+  matchedSkills,
+  missingSkills,
+  evidenceSources,
+}) => {
+  const roleTitle = job?.title || 'this role';
+  const fitLabel = score >= 80 ? 'strong' : score >= 60 ? 'good' : score >= 40 ? 'moderate' : 'limited';
+  const sourceText = evidenceSources.length
+    ? `This score was generated instantly from the candidate's ${evidenceSources.join(', ')} against the job requirements.`
+    : 'This score was generated instantly from the available candidate profile and job requirements.';
+  const matchedText = matchedSkills.length
+    ? `Best-aligned skills include ${matchedSkills.slice(0, 3).join(', ')}.`
+    : 'Direct evidence for the top required skills is still limited in the current profile.';
+  const missingText = missingSkills.length
+    ? `The biggest gaps are ${missingSkills.slice(0, 3).join(', ')}.`
+    : 'No major missing skills were identified from the listed requirements.';
+  const contextText =
+    String(candidate?.candidateSummary || '').trim() || String(candidate?.resumeText || '').trim()
+      ? `Overall alignment for ${roleTitle} looks ${fitLabel}.`
+      : `The available profile data suggests ${fitLabel} alignment for ${roleTitle}.`;
+
+  return `${sourceText} ${contextText} ${matchedText} ${missingText} Recommended next step: ${getRecommendation(score)}`.trim();
+};
+
+const generateHeuristicCandidateScore = ({ candidate, job }) => {
   const requiredSkills = normalizeRequiredSkills(job?.requiredSkills);
   const heuristicSkillMatch = inferSkillMatches({
     requiredSkills,
@@ -111,21 +183,51 @@ const generateHeuristicCandidateScore = ({ candidate, job, reason }) => {
   const matchedSkills = heuristicSkillMatch.matchedSkills;
   const missingSkills = heuristicSkillMatch.missingSkills;
   const evidenceText = buildCandidateEvidenceText(candidate);
-  const hasEvidence = Boolean(String(evidenceText || '').trim());
-  const skillRatio = requiredSkills.length ? matchedSkills.length / requiredSkills.length : 0.5;
-  const evidenceBoost = hasEvidence ? 12 : 0;
-  const summaryBoost = String(candidate?.candidateSummary || '').trim() ? 8 : 0;
-  const skillsBoost = Array.isArray(candidate?.candidateSkills) && candidate.candidateSkills.length ? 10 : 0;
-  const score = clampScore(skillRatio * 70 + evidenceBoost + summaryBoost + skillsBoost);
-  const summaryReason =
-    reason ||
-    'Gemini AI scoring is unavailable, so SmartHire used its built-in skill matching fallback for this result.';
+  const evidenceSources = getEvidenceSources(candidate);
+  const evidenceWordCount = countWords(evidenceText);
+  const yearsOfExperience = extractExperienceYears(evidenceText);
+  const hasResumeText = Boolean(String(candidate?.resumeText || '').trim());
+  const hasSummary = Boolean(String(candidate?.candidateSummary || '').trim());
+  const hasSkillsList = Array.isArray(candidate?.candidateSkills) && candidate.candidateSkills.length > 0;
+  const skillRatio = requiredSkills.length
+    ? matchedSkills.length / requiredSkills.length
+    : hasResumeText || hasSummary || hasSkillsList
+      ? 0.65
+      : 0.45;
+  const baseScore = hasResumeText ? 24 : hasSummary || hasSkillsList ? 18 : 10;
+  const coverageScore = requiredSkills.length ? skillRatio * 58 : 24;
+  const resumeDepthBoost = hasResumeText ? Math.min(10, 4 + Math.floor(evidenceWordCount / 75) * 2) : 0;
+  const summaryBoost = hasSummary ? 6 : 0;
+  const skillsBoost = hasSkillsList ? (candidate.candidateSkills.length >= 6 ? 6 : 4) : 0;
+  const experienceBoost =
+    yearsOfExperience >= 7 ? 6 : yearsOfExperience >= 4 ? 4 : yearsOfExperience >= 2 ? 2 : 0;
+  const roleSignalBoost = getRoleSignalBoost({ candidate, job });
+  const highCoverageBonus = skillRatio >= 0.8 ? 8 : skillRatio >= 0.5 ? 4 : 0;
+  const noMatchPenalty = requiredSkills.length && matchedSkills.length === 0 ? 10 : 0;
+  const score = clampScore(
+    baseScore +
+      coverageScore +
+      resumeDepthBoost +
+      summaryBoost +
+      skillsBoost +
+      experienceBoost +
+      roleSignalBoost +
+      highCoverageBonus -
+      noMatchPenalty,
+  );
 
   return {
     score,
     matchedSkills,
     missingSkills,
-    summary: `${summaryReason} ${buildFallbackSummary({ score, matchedSkills, missingSkills })}`.trim(),
+    summary: buildHeuristicSummary({
+      candidate,
+      job,
+      score,
+      matchedSkills,
+      missingSkills,
+      evidenceSources,
+    }),
   };
 };
 
@@ -138,7 +240,6 @@ const validateScoreResponse = (payload, { candidate, job }) => {
     candidate,
   });
   const summary = typeof payload?.summary === 'string' ? payload.summary.trim() : '';
-
   const isScoreValid = Number.isFinite(score) && score >= 0 && score <= 100;
 
   if (!isScoreValid) {
@@ -154,14 +255,9 @@ const validateScoreResponse = (payload, { candidate, job }) => {
     score,
     matchedSkills,
     missingSkills,
-    summary: summary || buildFallbackSummary({ score, matchedSkills, missingSkills }),
+    summary: summary || buildHeuristicSummary({ candidate, job, score, matchedSkills, missingSkills, evidenceSources: getEvidenceSources(candidate) }),
   };
 };
-
-const delay = (timeoutMs) =>
-  new Promise((resolve) => {
-    setTimeout(resolve, timeoutMs);
-  });
 
 const withTimeout = (promise, timeoutMs) =>
   Promise.race([
@@ -172,31 +268,6 @@ const withTimeout = (promise, timeoutMs) =>
       setTimeout(() => reject(error), timeoutMs);
     }),
   ]);
-
-const isTemporaryGeminiOverloadError = (error) => {
-  const statusCode = error?.status || error?.statusCode || error?.code;
-  const message = String(error?.message || '').toLowerCase();
-
-  return (
-    statusCode === 503 ||
-    statusCode === '503' ||
-    statusCode === 429 ||
-    statusCode === '429' ||
-    statusCode === 504 ||
-    statusCode === '504' ||
-    statusCode === 'RESOURCE_EXHAUSTED' ||
-    message.includes('503') ||
-    message.includes('429') ||
-    message.includes('resource exhausted') ||
-    message.includes('unavailable') ||
-    message.includes('overloaded') ||
-    message.includes('high demand') ||
-    message.includes('model is overloaded') ||
-    message.includes('service unavailable') ||
-    message.includes('timed out') ||
-    message.includes('timeout')
-  );
-};
 
 const parseGeminiJsonResponse = (outputText) => {
   const rawText = String(outputText || '').trim();
@@ -211,20 +282,19 @@ const parseGeminiJsonResponse = (outputText) => {
     rawText,
     rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim(),
   ];
-
   const jsonMatch = rawText.match(/\{[\s\S]*\}/);
 
   if (jsonMatch) {
     directCandidates.push(jsonMatch[0]);
   }
 
-  for (const candidate of directCandidates) {
-    if (!candidate) {
+  for (const candidateText of directCandidates) {
+    if (!candidateText) {
       continue;
     }
 
     try {
-      return JSON.parse(candidate);
+      return JSON.parse(candidateText);
     } catch (error) {
       // Try the next extraction strategy.
     }
@@ -237,68 +307,38 @@ const parseGeminiJsonResponse = (outputText) => {
   throw error;
 };
 
+const generateGeminiCandidateScore = async ({ candidate, job }) => {
+  const client = getClient();
+  const prompt = buildScoreCandidatePrompt({ candidate, job });
+  const response = await withTimeout(
+    client.models.generateContent({
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseJsonSchema: responseSchema,
+      },
+    }),
+    BACKGROUND_GEMINI_TIMEOUT_MS,
+  );
+
+  return validateScoreResponse(parseGeminiJsonResponse(response.text), { candidate, job });
+};
+
+const maybeRunGeminiInBackground = ({ candidate, job }) => {
+  if (!BACKGROUND_GEMINI_ENABLED || !process.env.GEMINI_API_KEY) {
+    return;
+  }
+
+  void generateGeminiCandidateScore({ candidate, job }).catch(() => {
+    // Ignore background Gemini failures to keep scoring instant and reliable.
+  });
+};
+
 const generateCandidateScore = async ({ candidate, job }) => {
-  if (!process.env.GEMINI_API_KEY) {
-    return generateHeuristicCandidateScore({
-      candidate,
-      job,
-      reason:
-        'Gemini AI scoring is not configured, so SmartHire used its built-in skill matching fallback for this result.',
-    });
-  }
-
-  try {
-    const client = getClient();
-    const prompt = buildScoreCandidatePrompt({ candidate, job });
-    let response;
-    let lastError;
-
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
-      try {
-        response = await withTimeout(
-          client.models.generateContent({
-            model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json',
-              responseJsonSchema: responseSchema,
-            },
-          }),
-          DEFAULT_TIMEOUT_MS,
-        );
-        lastError = null;
-        break;
-      } catch (error) {
-        if (!isTemporaryGeminiOverloadError(error)) {
-          throw error;
-        }
-
-        lastError = error;
-
-        if (attempt < MAX_RETRIES - 1) {
-          await delay(RETRY_DELAYS_MS[attempt] || RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1]);
-        }
-      }
-    }
-
-    if (lastError) {
-      const error = new Error(
-        'AI scoring is temporarily unavailable due to model traffic. Please try again in a few moments.',
-      );
-      error.statusCode = 503;
-      throw error;
-    }
-
-    const parsedOutput = parseGeminiJsonResponse(response.text);
-
-    return validateScoreResponse(parsedOutput, { candidate, job });
-  } catch (error) {
-    return generateHeuristicCandidateScore({
-      candidate,
-      job,
-      reason: buildGeminiFallbackReason(error),
-    });
-  }
+  const heuristicScore = generateHeuristicCandidateScore({ candidate, job });
+  maybeRunGeminiInBackground({ candidate, job });
+  return heuristicScore;
 };
 
 module.exports = {

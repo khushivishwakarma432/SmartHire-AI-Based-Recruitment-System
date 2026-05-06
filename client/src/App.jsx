@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicOnlyRoute from './components/PublicOnlyRoute';
+import HelpAssistant from './components/HelpAssistant';
 import AuthLayout from './layouts/AuthLayout';
 const CompareCandidates = lazy(() => import('./pages/CompareCandidates'));
 const CandidatesList = lazy(() => import('./pages/CandidatesList'));
@@ -32,32 +33,35 @@ function RouteLoadingState() {
 
 function App() {
   return (
-    <Suspense fallback={<RouteLoadingState />}>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/features" element={<Navigate replace to="/#features" />} />
-        <Route element={<PublicOnlyRoute />}>
-          <Route element={<AuthLayout />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+    <>
+      <Suspense fallback={<RouteLoadingState />}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/features" element={<Navigate replace to="/#features" />} />
+          <Route element={<PublicOnlyRoute />}>
+            <Route element={<AuthLayout />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+            </Route>
           </Route>
-        </Route>
-        <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/jobs" element={<JobsList />} />
-          <Route path="/jobs/create" element={<CreateJob />} />
-          <Route path="/jobs/:id" element={<JobDetails />} />
-          <Route path="/jobs/:id/edit" element={<EditJob />} />
-          <Route path="/candidates" element={<CandidatesList />} />
-          <Route path="/candidates/compare" element={<CompareCandidates />} />
-          <Route path="/candidates/upload" element={<UploadCandidate />} />
-          <Route path="/pipeline" element={<Pipeline />} />
-          <Route path="/interviews" element={<InterviewCalendar />} />
-          <Route path="/settings" element={<Settings />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/jobs" element={<JobsList />} />
+            <Route path="/jobs/create" element={<CreateJob />} />
+            <Route path="/jobs/:id" element={<JobDetails />} />
+            <Route path="/jobs/:id/edit" element={<EditJob />} />
+            <Route path="/candidates" element={<CandidatesList />} />
+            <Route path="/candidates/compare" element={<CompareCandidates />} />
+            <Route path="/candidates/upload" element={<UploadCandidate />} />
+            <Route path="/pipeline" element={<Pipeline />} />
+            <Route path="/interviews" element={<InterviewCalendar />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+      <HelpAssistant />
+    </>
   );
 }
 

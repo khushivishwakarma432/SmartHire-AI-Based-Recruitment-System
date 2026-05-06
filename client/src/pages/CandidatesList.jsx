@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import {
@@ -28,6 +28,8 @@ const SUGGESTED_CANDIDATE_TAGS = [
   'Good Culture Fit',
   'Priority',
 ];
+const CANDIDATE_LOAD_DELAY_MESSAGE =
+  'Candidates are taking longer to load. Please refresh or try again.';
 
 const loadCandidateReportPdf = () => import('../utils/candidateReportPdf');
 
@@ -294,6 +296,7 @@ const getInterviewStatusBadge = (status) => {
 };
 
 function CandidatesList() {
+  const inFlightScoreRequestsRef = useRef(new Set());
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();
@@ -320,6 +323,7 @@ function CandidatesList() {
   const [scoreErrors, setScoreErrors] = useState({});
   const [expandedCandidateId, setExpandedCandidateId] = useState('');
   const [error, setError] = useState('');
+  const [candidateLoadIssue, setCandidateLoadIssue] = useState('');
   const [reviewMessagesByCandidate, setReviewMessagesByCandidate] = useState({});
   const [reviewErrorsByCandidate, setReviewErrorsByCandidate] = useState({});
   const [interviewMessagesByCandidate, setInterviewMessagesByCandidate] = useState({});
@@ -327,7 +331,11 @@ function CandidatesList() {
   const [tagMessagesByCandidate, setTagMessagesByCandidate] = useState({});
   const [tagErrorsByCandidate, setTagErrorsByCandidate] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isScoreListLoading, setIsScoreListLoading] = useState(true);
   const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+  const [hasLoadedCandidatesSuccessfully, setHasLoadedCandidatesSuccessfully] = useState(false);
+  const [isCandidateLoadSlow, setIsCandidateLoadSlow] = useState(false);
+  const [candidateReloadKey, setCandidateReloadKey] = useState(0);
   const [openActionMenuId, setOpenActionMenuId] = useState('');
 
   useEffect(() => {
@@ -375,13 +383,21 @@ function CandidatesList() {
   }, [navigate]);
 
   useEffect(() => {
+    let isCurrentRequest = true;
+
     const loadCandidates = async () => {
       setIsLoading(true);
-      setError('');
+      setIsScoreListLoading(true);
+      setCandidateLoadIssue('');
+      setIsCandidateLoadSlow(false);
 
       try {
         const data = selectedJob ? await getCandidatesByJob(selectedJob) : await getCandidates();
         const nextCandidates = data.candidates || [];
+
+        if (!isCurrentRequest) {
+          return;
+        }
 
         setCandidates(nextCandidates);
         setReviewDraftsByCandidate((current) => {
@@ -413,6 +429,9 @@ function CandidatesList() {
           return nextDrafts;
         });
 
+        setHasLoadedCandidatesSuccessfully(true);
+        setIsLoading(false);
+
         try {
           let nextScoresByCandidate = {};
 
@@ -430,33 +449,66 @@ function CandidatesList() {
           setScoresByCandidate(nextScoresByCandidate);
           saveStoredScores(nextScoresByCandidate);
         } catch (scoreRequestError) {
+          if (!isCurrentRequest) {
+            return;
+          }
+
           if (isUnauthorizedError(scoreRequestError)) {
             removeToken();
             navigate('/login', { replace: true });
             return;
           }
+        } finally {
+          if (isCurrentRequest) {
+            setIsScoreListLoading(false);
+          }
         }
       } catch (requestError) {
+        if (!isCurrentRequest) {
+          return;
+        }
+
         if (isUnauthorizedError(requestError)) {
           removeToken();
           navigate('/login', { replace: true });
           return;
         }
 
-        setError(requestError.message);
+        setCandidateLoadIssue(CANDIDATE_LOAD_DELAY_MESSAGE);
         showToast({
-          title: 'Unable to load candidates',
-          message: requestError.message,
-          type: 'error',
+          title: 'Candidates are taking longer to load',
+          message: CANDIDATE_LOAD_DELAY_MESSAGE,
+          type: 'info',
         });
-        setCandidates([]);
       } finally {
-        setIsLoading(false);
+        if (isCurrentRequest) {
+          setIsLoading(false);
+          setIsScoreListLoading(false);
+        }
       }
     };
 
     loadCandidates();
-  }, [navigate, selectedJob]);
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [candidateReloadKey, navigate, selectedJob]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setIsCandidateLoadSlow(false);
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsCandidateLoadSlow(true);
+    }, 4000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isLoading]);
 
   useEffect(() => {
     setSelectedCandidateIds((current) => current.filter((candidateId) => candidates.some((candidate) => candidate._id === candidateId)));
@@ -503,7 +555,16 @@ function CandidatesList() {
     setSelectedCandidateTag(event.target.value);
   };
 
+  const handleRetryCandidates = () => {
+    setCandidateLoadIssue('');
+    setCandidateReloadKey((current) => current + 1);
+  };
+
   const handleGenerateScore = async (candidate) => {
+    if (inFlightScoreRequestsRef.current.has(candidate._id)) {
+      return;
+    }
+
     const jobId = candidate.appliedJob?._id || candidate.appliedJob;
 
     if (!jobId) {
@@ -519,6 +580,7 @@ function CandidatesList() {
       return;
     }
 
+    inFlightScoreRequestsRef.current.add(candidate._id);
     setLoadingScores((current) => ({ ...current, [candidate._id]: true }));
     setScoreErrors((current) => ({ ...current, [candidate._id]: '' }));
 
@@ -566,6 +628,7 @@ function CandidatesList() {
         type: 'error',
       });
     } finally {
+      inFlightScoreRequestsRef.current.delete(candidate._id);
       setLoadingScores((current) => ({ ...current, [candidate._id]: false }));
     }
   };
@@ -1361,7 +1424,7 @@ function CandidatesList() {
               onClick={() => handleGenerateScore(candidate)}
               disabled={loadingScores[candidate._id]}
             >
-              {loadingScores[candidate._id] ? 'Generating...' : 'Generate Score'}
+              {loadingScores[candidate._id] ? 'Generating AI score...' : 'Generate Score'}
             </button>
           </div>
         </div>
@@ -1758,6 +1821,16 @@ function CandidatesList() {
       </div>
 
       {error ? <p className="alert-error">{error}</p> : null}
+      {isLoading && isCandidateLoadSlow ? (
+        <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>{CANDIDATE_LOAD_DELAY_MESSAGE}</p>
+            <button className="btn-secondary btn-compact w-full sm:w-auto" type="button" onClick={handleRetryCandidates}>
+              Retry
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {isLoading ? (
         <>
@@ -1844,7 +1917,24 @@ function CandidatesList() {
           </div>
         </div>
         </>
-      ) : candidates.length === 0 ? (
+      ) : candidateLoadIssue ? (
+        <div className="empty-state">
+          <p className="kicker">Candidate Pipeline</p>
+          <h2 className="title-lg">Candidates are taking longer to load</h2>
+          <p className="body-muted mt-2">{CANDIDATE_LOAD_DELAY_MESSAGE}</p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <button className="btn-primary btn-compact" type="button" onClick={handleRetryCandidates}>
+              Retry
+            </button>
+            <Link className="btn-secondary btn-compact" to="/candidates/upload">
+              Upload candidate
+            </Link>
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            The empty state only appears after a successful candidate fetch with no records.
+          </p>
+        </div>
+      ) : hasLoadedCandidatesSuccessfully && candidates.length === 0 ? (
         <div className="empty-state">
           <p className="kicker">Candidate Pipeline</p>
           <h2 className="title-lg">
@@ -2027,7 +2117,7 @@ function CandidatesList() {
                       onClick={() => handleGenerateScore(candidate)}
                       disabled={loadingScores[candidate._id]}
                     >
-                      {loadingScores[candidate._id] ? 'Generating...' : 'Generate Score'}
+                      {loadingScores[candidate._id] ? 'Generating AI score...' : 'Generate Score'}
                     </button>
                     {scoreEntry ? (
                       <button
@@ -2243,7 +2333,7 @@ function CandidatesList() {
                               onClick={() => handleGenerateScore(candidate)}
                               disabled={loadingScores[candidate._id]}
                             >
-                              {loadingScores[candidate._id] ? 'Generating...' : 'Generate Score'}
+                              {loadingScores[candidate._id] ? 'Generating AI score...' : 'Generate Score'}
                             </button>
                             <button
                               className="btn-secondary btn-compact px-2.5"
@@ -2441,7 +2531,7 @@ function CandidatesList() {
                                       onClick={() => handleGenerateScore(candidate)}
                                       disabled={loadingScores[candidate._id]}
                                     >
-                                      {loadingScores[candidate._id] ? 'Generating...' : 'Generate Score'}
+                                      {loadingScores[candidate._id] ? 'Generating AI score...' : 'Generate Score'}
                                     </button>
                                     </div>
                                   </div>

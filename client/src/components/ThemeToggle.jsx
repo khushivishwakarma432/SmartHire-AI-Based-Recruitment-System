@@ -1,27 +1,45 @@
+const SunIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+    <circle cx="12" cy="12" r="4.25" />
+    <path
+      d="M12 2.75v2.5M12 18.75v2.5M21.25 12h-2.5M5.25 12h-2.5M18.54 5.46l-1.77 1.77M7.23 16.77l-1.77 1.77M18.54 18.54l-1.77-1.77M7.23 7.23 5.46 5.46"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+    <path
+      d="M20.04 14.12A8.5 8.5 0 1 1 9.88 3.96a6.9 6.9 0 0 0 10.16 10.16Z"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 function ThemeToggle({ isDark, onToggle, className = '' }) {
-  const nextModeLabel = isDark ? 'Light Mode' : 'Dark Mode';
-  const nextModeBadge = isDark ? 'Sun' : 'Moon';
+  const nextModeLabel = isDark ? 'Switch to light mode' : 'Switch to dark mode';
 
   return (
     <button
-      className={`inline-flex h-10 max-w-full min-w-0 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3.5 text-[13px] font-semibold leading-none backdrop-blur transition-colors duration-200 hover:-translate-y-0.5 max-sm:w-10 max-sm:px-0 ${
-        isDark
-          ? 'border-emerald-400/20 bg-white/[0.04] text-white hover:border-teal-400/40 hover:bg-teal-400/10'
-          : 'border-slate-300 bg-white text-slate-800 shadow-[0_14px_36px_-24px_rgba(15,23,42,0.18)] hover:border-cyan-300 hover:bg-slate-50'
-      } ${className}`.trim()}
+      className={`theme-toggle ${className}`.trim()}
       type="button"
       onClick={onToggle}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label={nextModeLabel}
+      aria-pressed={isDark}
+      title={nextModeLabel}
     >
       <span
         aria-hidden="true"
-        className={`inline-flex min-w-[18px] items-center justify-center text-[11px] font-semibold leading-none ${
-          isDark ? 'text-amber-200' : 'text-slate-700'
-        }`}
-      >
-        {nextModeBadge}
+        className={`theme-toggle-thumb ${isDark ? 'theme-toggle-thumb-dark' : 'theme-toggle-thumb-light'}`}
+      />
+      <span className={`theme-toggle-slot ${!isDark ? 'theme-toggle-slot-active' : ''}`}>
+        <SunIcon />
       </span>
-      <span className="truncate max-sm:hidden">{nextModeLabel}</span>
+      <span className={`theme-toggle-slot ${isDark ? 'theme-toggle-slot-active' : ''}`}>
+        <MoonIcon />
+      </span>
     </button>
   );
 }

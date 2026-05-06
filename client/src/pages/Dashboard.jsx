@@ -134,6 +134,7 @@ const Dashboard = () => {
   const [scoresByCandidate, setScoresByCandidate] = useState({});
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isDetailsLoading, setIsDetailsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
@@ -147,25 +148,23 @@ const Dashboard = () => {
       }
 
       setIsLoading(true);
+      setIsDetailsLoading(true);
       setError('');
 
       try {
-        const [summaryResult, candidatesResult, latestScoresResult] = await Promise.allSettled([
-          getDashboardSummary(),
-          getCandidates(),
-          getLatestScores(),
-        ]);
+        const summaryRequest = getDashboardSummary();
+        const candidatesRequest = getCandidates();
+        const scoresRequest = getLatestScores();
+
+        const summaryResult = await Promise.resolve(summaryRequest)
+          .then((value) => ({ status: 'fulfilled', value }))
+          .catch((reason) => ({ status: 'rejected', reason }));
 
         if (!isMounted) {
           return;
         }
 
-        const authFailure = [summaryResult, candidatesResult, latestScoresResult]
-          .filter((result) => result.status === 'rejected')
-          .map((result) => result.reason)
-          .find((requestError) => isUnauthorizedError(requestError));
-
-        if (authFailure) {
+        if (summaryResult.status === 'rejected' && isUnauthorizedError(summaryResult.reason)) {
           removeToken();
           navigate('/login', { replace: true });
           return;
@@ -175,6 +174,31 @@ const Dashboard = () => {
           setSummary(normalizeSummary(summaryResult.value));
         } else {
           setSummary(FALLBACK_SUMMARY);
+        }
+
+        if (summaryResult.status === 'rejected') {
+          setError(summaryResult.reason?.message || 'Dashboard summary is unavailable right now.');
+        }
+        setIsLoading(false);
+
+        const [candidatesResult, latestScoresResult] = await Promise.allSettled([
+          candidatesRequest,
+          scoresRequest,
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const authFailure = [candidatesResult, latestScoresResult]
+          .filter((result) => result.status === 'rejected')
+          .map((result) => result.reason)
+          .find((requestError) => isUnauthorizedError(requestError));
+
+        if (authFailure) {
+          removeToken();
+          navigate('/login', { replace: true });
+          return;
         }
 
         const candidatesPayload = candidatesResult.status === 'fulfilled' ? candidatesResult.value : null;
@@ -210,6 +234,7 @@ const Dashboard = () => {
       } finally {
         if (isMounted) {
           setIsLoading(false);
+          setIsDetailsLoading(false);
         }
       }
     };
@@ -357,6 +382,7 @@ const Dashboard = () => {
             candidates={candidates}
             scoresByCandidate={scoresByCandidate}
             isLoading={isLoading}
+            isDetailsLoading={isDetailsLoading}
           />
         ) : null}
 
@@ -458,21 +484,25 @@ const Dashboard = () => {
 
             <div className="mt-6 space-y-3">
               {topScoredCandidates.length ? (
-                topScoredCandidates.map((candidate) => (
-                  <div key={candidate._id} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-4 dark:border-slate-800 dark:bg-slate-950/45">
+                topScoredCandidates.map((candidate, index) => (
+                  <div
+                    key={candidate._id}
+                    className={`dashboard-top-candidate-card ${index === 0 ? 'dashboard-top-candidate-card-highlighted' : ''}`}
+                  >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="font-medium text-slate-950 dark:text-white">{candidate.fullName}</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                        <p className={`font-medium ${index === 0 ? 'dashboard-top-candidate-name-highlighted' : 'text-slate-950 dark:text-white'}`}>{candidate.fullName}</p>
+                        <p className={`text-sm ${index === 0 ? 'dashboard-top-candidate-copy-highlighted' : 'text-slate-500 dark:text-slate-400'}`}>
                           {candidate.appliedJob?.title || 'Job not assigned'}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="badge-muted">{candidate.scoreValue}/100</span>
+                        {index === 0 ? <span className="dashboard-top-candidate-best-badge">Best Score</span> : null}
+                        <span className={index === 0 ? 'dashboard-top-candidate-score-badge' : 'badge-muted'}>{candidate.scoreValue}/100</span>
                         <span className={getFitClassName(candidate.scoreValue)}>{getFitLabel(candidate.scoreValue)}</span>
                       </div>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{candidate.scoreSummary}</p>
+                    <p className={`mt-3 text-sm leading-6 ${index === 0 ? 'dashboard-top-candidate-copy-highlighted' : 'text-slate-600 dark:text-slate-300'}`}>{candidate.scoreSummary}</p>
                   </div>
                 ))
               ) : (

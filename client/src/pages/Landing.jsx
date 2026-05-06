@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 
 import RevealOnScroll from '../components/marketing/RevealOnScroll';
 import MainLayout from '../layouts/MainLayout';
+import { useTheme } from '../utils/theme';
 
 const displayFontStyle = {
   fontFamily: '"Space Grotesk", "Aptos", "Segoe UI", sans-serif',
@@ -125,40 +126,80 @@ const audienceCards = [
   },
 ];
 
-const sectionShellClass = 'border-white/10 bg-white/[0.04] shadow-[0_32px_120px_-60px_rgba(6,182,212,0.45)]';
-const softPanelClass = 'border-white/10 bg-[#081120]/88';
-const innerCardClass = 'border-white/8 bg-slate-950/80';
-const nestedCardClass = 'border-white/8 bg-white/[0.03]';
-const detailPanelClass = 'border-white/8 bg-white/[0.03] text-slate-300';
-const dividerClass = 'border-white/10';
-const tableShellClass = 'border-white/10';
-const tableHeadClass = 'bg-white/[0.03] text-slate-400';
-const tableBodyClass = 'bg-slate-950/70';
-const progressTrackClass = 'bg-white/8';
-const mutedCopyClass = 'text-slate-300';
-const subtleCopyClass = 'text-slate-400';
-const strongTextClass = 'text-white';
-const accentBadgeClass = 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100';
-const secondaryActionClass = 'border-white/12 bg-white/[0.03] text-white hover:border-cyan-400/30 hover:bg-cyan-400/10';
+function getLandingThemeClasses(isDark) {
+  if (isDark) {
+    return {
+      sectionShellClass: 'border-white/10 bg-white/[0.04] shadow-[0_32px_120px_-60px_rgba(6,182,212,0.45)]',
+      softPanelClass: 'border-white/10 bg-[#081120]/88',
+      innerCardClass: 'border-white/8 bg-slate-950/80',
+      nestedCardClass: 'border-white/8 bg-white/[0.03]',
+      detailPanelClass: 'border-white/8 bg-white/[0.03] text-slate-300',
+      dividerClass: 'border-white/10',
+      tableShellClass: 'border-white/10',
+      tableHeadClass: 'bg-white/[0.03] text-slate-400',
+      tableBodyClass: 'bg-slate-950/70',
+      rowDividerClass: 'border-white/8',
+      progressTrackClass: 'bg-white/8',
+      mutedCopyClass: 'text-slate-300',
+      subtleCopyClass: 'text-slate-400',
+      strongTextClass: 'text-white',
+      eyebrowClass: 'text-cyan-300',
+      accentTextClass: 'text-cyan-200',
+      accentBadgeClass: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100',
+      secondaryActionClass: 'border-white/12 bg-white/[0.03] text-white hover:border-cyan-400/30 hover:bg-cyan-400/10',
+      successBadgeClass: 'bg-emerald-500/12 text-emerald-200',
+      neutralBadgeClass: 'bg-white/8 text-slate-200',
+      pendingBadgeClass: 'bg-amber-500/12 text-amber-100',
+      mutedPillClass: 'bg-white/8 text-slate-300',
+      accentPanelClass: 'bg-cyan-400/12 text-cyan-200',
+    };
+  }
 
-function SectionIntro({ eyebrow, title, description, align = 'left' }) {
+  return {
+    sectionShellClass: 'border-slate-200/80 bg-white/92 shadow-[0_30px_100px_-70px_rgba(14,165,233,0.24)]',
+    softPanelClass: 'border-slate-200/80 bg-white/94',
+    innerCardClass: 'border-slate-200/80 bg-slate-50/92',
+    nestedCardClass: 'border-slate-200/80 bg-white',
+    detailPanelClass: 'border-slate-200/80 bg-slate-50 text-slate-600',
+    dividerClass: 'border-slate-200',
+    tableShellClass: 'border-slate-200/80',
+    tableHeadClass: 'bg-slate-50 text-slate-500',
+    tableBodyClass: 'bg-white',
+    rowDividerClass: 'border-slate-200/80',
+    progressTrackClass: 'bg-slate-200/80',
+    mutedCopyClass: 'text-slate-600',
+    subtleCopyClass: 'text-slate-500',
+    strongTextClass: 'text-slate-950',
+    eyebrowClass: 'text-cyan-700',
+    accentTextClass: 'text-cyan-700',
+    accentBadgeClass: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+    secondaryActionClass: 'border-slate-200 bg-white text-slate-900 hover:border-cyan-300 hover:bg-cyan-50',
+    successBadgeClass: 'bg-emerald-50 text-emerald-700',
+    neutralBadgeClass: 'bg-slate-100 text-slate-700',
+    pendingBadgeClass: 'bg-amber-50 text-amber-700',
+    mutedPillClass: 'bg-slate-100 text-slate-700',
+    accentPanelClass: 'bg-cyan-50 text-cyan-700',
+  };
+}
+
+function SectionIntro({ eyebrow, title, description, align = 'left', eyebrowClass, titleClass, descriptionClass }) {
   return (
     <div className={`max-w-3xl ${align === 'center' ? 'mx-auto text-center' : ''}`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300">{eyebrow}</p>
-      <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] text-white sm:text-4xl lg:text-[3rem]" style={displayFontStyle}>
+      <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${eyebrowClass}`}>{eyebrow}</p>
+      <h2 className={`mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl lg:text-[3rem] ${titleClass}`} style={displayFontStyle}>
         {title}
       </h2>
-      <p className="mt-4 text-base leading-8 text-slate-300 sm:text-lg">{description}</p>
+      <p className={`mt-4 text-base leading-8 sm:text-lg ${descriptionClass}`}>{description}</p>
     </div>
   );
 }
 
-function InsightBar({ label, value }) {
+function InsightBar({ label, value, labelClass, valueClass, progressTrackClass }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="text-slate-300">{label}</span>
-        <span className="text-white">{value}%</span>
+        <span className={labelClass}>{label}</span>
+        <span className={valueClass}>{value}%</span>
       </div>
       <div className={`h-2 rounded-full ${progressTrackClass}`}>
         <div
@@ -171,6 +212,40 @@ function InsightBar({ label, value }) {
 }
 
 function Landing() {
+  const { isDark } = useTheme();
+  const {
+    sectionShellClass,
+    softPanelClass,
+    innerCardClass,
+    nestedCardClass,
+    detailPanelClass,
+    dividerClass,
+    tableShellClass,
+    tableHeadClass,
+    tableBodyClass,
+    rowDividerClass,
+    progressTrackClass,
+    mutedCopyClass,
+    subtleCopyClass,
+    strongTextClass,
+    eyebrowClass,
+    accentTextClass,
+    accentBadgeClass,
+    secondaryActionClass,
+    successBadgeClass,
+    neutralBadgeClass,
+    pendingBadgeClass,
+    mutedPillClass,
+    accentPanelClass,
+  } = getLandingThemeClasses(isDark);
+
+  const handleExplorePlatform = () => {
+    document.getElementById('features')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
+
   return (
     <MainLayout>
       <div className="relative isolate space-y-6 pb-4 sm:space-y-8 lg:space-y-10">
@@ -185,7 +260,7 @@ function Landing() {
                 AI Hiring Command Center
               </span>
 
-              <h1 className="mt-6 text-[2.95rem] font-semibold leading-[0.95] tracking-[-0.07em] text-white sm:text-[4rem] lg:text-[5.3rem]" style={displayFontStyle}>
+              <h1 className={`mt-6 text-[2.95rem] font-semibold leading-[0.95] tracking-[-0.07em] sm:text-[4rem] lg:text-[5.3rem] ${strongTextClass}`} style={displayFontStyle}>
                 Hire Smarter with AI-Powered Candidate Intelligence
               </h1>
 
@@ -197,9 +272,13 @@ function Landing() {
                 <Link className="inline-flex min-h-[54px] items-center justify-center rounded-full border border-cyan-400/40 bg-[linear-gradient(135deg,#06b6d4_0%,#2563eb_100%)] px-7 text-sm font-semibold text-white shadow-[0_20px_45px_-25px_rgba(37,99,235,0.65)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_60px_-26px_rgba(37,99,235,0.82)]" to="/signup">
                   Start Free
                 </Link>
-                <Link className={`inline-flex min-h-[54px] items-center justify-center rounded-full border px-7 text-sm font-semibold transition duration-300 hover:-translate-y-1 ${secondaryActionClass}`} to="/login">
-                  Watch Product Flow
-                </Link>
+                <button
+                  type="button"
+                  className={`inline-flex min-h-[54px] items-center justify-center rounded-full border px-7 text-sm font-semibold transition duration-300 hover:-translate-y-1 ${secondaryActionClass}`}
+                  onClick={handleExplorePlatform}
+                >
+                  Explore Platform
+                </button>
               </div>
 
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -233,7 +312,7 @@ function Landing() {
                           <p className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${subtleCopyClass}`}>Candidate queue</p>
                           <p className={`mt-2 text-lg font-semibold ${strongTextClass}`}>Shortlist recommendations</p>
                         </div>
-                        <span className="rounded-full bg-emerald-500/12 px-3 py-1 text-[11px] font-semibold text-emerald-200">3 ready</span>
+                        <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${successBadgeClass}`}>3 ready</span>
                       </div>
 
                       <div className="mt-4 space-y-3">
@@ -243,8 +322,8 @@ function Landing() {
                               <p className={`truncate font-semibold ${strongTextClass}`}>{row.name}</p>
                               <p className={`truncate text-xs ${subtleCopyClass}`}>{row.role}</p>
                             </div>
-                            <span className="text-xs font-semibold text-cyan-200">{row.score}% match</span>
-                            <span className={`inline-flex justify-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.status === 'Shortlisted' ? 'bg-emerald-500/12 text-emerald-200' : 'bg-white/8 text-slate-200'}`}>
+                            <span className={`text-xs font-semibold ${accentTextClass}`}>{row.score}% match</span>
+                            <span className={`inline-flex justify-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.status === 'Shortlisted' ? successBadgeClass : neutralBadgeClass}`}>
                               {row.status}
                             </span>
                           </div>
@@ -259,7 +338,14 @@ function Landing() {
                         <p className={`mt-2 text-sm ${mutedCopyClass}`}>Role fit for Senior ML Engineer</p>
                         <div className="mt-4 space-y-3">
                           {shortlistSignals.map((item) => (
-                            <InsightBar key={item.label} label={item.label} value={item.value} />
+                            <InsightBar
+                              key={item.label}
+                              label={item.label}
+                              value={item.value}
+                              labelClass={mutedCopyClass}
+                              valueClass={strongTextClass}
+                              progressTrackClass={progressTrackClass}
+                            />
                           ))}
                         </div>
                       </div>
@@ -296,7 +382,14 @@ function Landing() {
         </RevealOnScroll>
 
         <RevealOnScroll as="section" id="workflow" className={`rounded-[32px] border px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10 ${sectionShellClass}`} delay={90}>
-          <SectionIntro eyebrow="How it works" title="From upload to shortlist without the usual manual drag." description="A three-step system designed to compress hiring effort while keeping recruiter judgment in control." />
+          <SectionIntro
+            eyebrow="How it works"
+            title="From upload to shortlist without the usual manual drag."
+            description="A three-step system designed to compress hiring effort while keeping recruiter judgment in control."
+            eyebrowClass={eyebrowClass}
+            titleClass={strongTextClass}
+            descriptionClass={mutedCopyClass}
+          />
 
           <div className="mt-8 grid gap-4 xl:grid-cols-3">
             {steps.map((step, index) => (
@@ -314,7 +407,14 @@ function Landing() {
         </RevealOnScroll>
 
         <RevealOnScroll as="section" id="features" className={`rounded-[32px] border px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10 ${sectionShellClass}`} delay={120}>
-          <SectionIntro eyebrow="AI features" title="Premium product building blocks for modern hiring teams." description="Every card focuses on what a real recruiting team needs to move faster while keeping decision quality high." />
+          <SectionIntro
+            eyebrow="AI features"
+            title="Premium product building blocks for modern hiring teams."
+            description="Every card focuses on what a real recruiting team needs to move faster while keeping decision quality high."
+            eyebrowClass={eyebrowClass}
+            titleClass={strongTextClass}
+            descriptionClass={mutedCopyClass}
+          />
 
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {features.map((feature, index) => (
@@ -328,7 +428,14 @@ function Landing() {
         </RevealOnScroll>
 
         <RevealOnScroll as="section" id="dashboard-preview" className={`rounded-[34px] border px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10 ${sectionShellClass}`} delay={140}>
-          <SectionIntro eyebrow="Dashboard preview" title="A dashboard that feels like a real AI hiring startup product." description="A recruiter-facing command center that combines candidate tables, match percentages, shortlist states, scorecards, and analytics in one product surface." />
+          <SectionIntro
+            eyebrow="Dashboard preview"
+            title="A dashboard that feels like a real AI hiring startup product."
+            description="A recruiter-facing command center that combines candidate tables, match percentages, shortlist states, scorecards, and analytics in one product surface."
+            eyebrowClass={eyebrowClass}
+            titleClass={strongTextClass}
+            descriptionClass={mutedCopyClass}
+          />
 
           <div className="mt-8 grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">
             <div className={`rounded-[28px] border p-4 sm:p-5 ${softPanelClass}`}>
@@ -339,7 +446,7 @@ function Landing() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${accentBadgeClass}`}>JD match</span>
-                  <span className="rounded-full bg-emerald-500/12 px-3 py-1 text-[11px] font-semibold text-emerald-200">Shortlist status</span>
+                  <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${successBadgeClass}`}>Shortlist status</span>
                 </div>
               </div>
 
@@ -352,19 +459,19 @@ function Landing() {
                 </div>
                 <div className={tableBodyClass}>
                   {dashboardRows.map((row) => (
-                    <div key={row.name} className="grid grid-cols-[minmax(0,1.3fr)_0.7fr_0.6fr_0.65fr] gap-3 border-t border-white/8 px-4 py-4 text-sm text-slate-300">
+                    <div key={row.name} className={`grid grid-cols-[minmax(0,1.3fr)_0.7fr_0.6fr_0.65fr] gap-3 border-t px-4 py-4 text-sm ${mutedCopyClass} ${rowDividerClass}`}>
                       <div className="min-w-0">
                         <p className={`truncate font-semibold ${strongTextClass}`}>{row.name}</p>
                         <p className={`truncate text-xs ${subtleCopyClass}`}>{row.role}</p>
                       </div>
                       <div className="space-y-2">
-                        <p className="font-semibold text-cyan-200">{row.score}%</p>
+                        <p className={`font-semibold ${accentTextClass}`}>{row.score}%</p>
                         <div className={`h-1.5 rounded-full ${progressTrackClass}`}>
                           <div className="h-full rounded-full bg-[linear-gradient(90deg,rgba(34,211,238,0.95),rgba(59,130,246,0.9))]" style={{ width: `${row.score}%` }} />
                         </div>
                       </div>
                       <div className="flex items-center">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.status === 'Shortlisted' ? 'bg-emerald-500/12 text-emerald-200' : row.status === 'Pending' ? 'bg-amber-500/12 text-amber-100' : 'bg-white/8 text-slate-200'}`}>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.status === 'Shortlisted' ? successBadgeClass : row.status === 'Pending' ? pendingBadgeClass : neutralBadgeClass}`}>
                           {row.status}
                         </span>
                       </div>
@@ -386,7 +493,7 @@ function Landing() {
                       <p className={`text-xs ${subtleCopyClass}`}>{item.label}</p>
                       <div className="mt-2 flex items-end justify-between gap-3">
                         <p className={`text-3xl font-semibold tracking-tight ${strongTextClass}`}>{item.value}</p>
-                        <span className="text-xs font-semibold text-cyan-200">{item.trend}</span>
+                        <span className={`text-xs font-semibold ${accentTextClass}`}>{item.trend}</span>
                       </div>
                     </div>
                   ))}
@@ -402,7 +509,14 @@ function Landing() {
                     { label: 'Product thinking', value: 76 },
                     { label: 'Stakeholder communication', value: 88 },
                   ].map((item) => (
-                    <InsightBar key={item.label} label={item.label} value={item.value} />
+                    <InsightBar
+                      key={item.label}
+                      label={item.label}
+                      value={item.value}
+                      labelClass={mutedCopyClass}
+                      valueClass={strongTextClass}
+                      progressTrackClass={progressTrackClass}
+                    />
                   ))}
                 </div>
               </div>
@@ -411,17 +525,25 @@ function Landing() {
         </RevealOnScroll>
 
         <RevealOnScroll as="section" id="comparison" className={`rounded-[32px] border px-5 py-6 sm:px-8 sm:py-8 lg:px-10 ${sectionShellClass}`} delay={160}>
-          <SectionIntro align="center" eyebrow="Comparison" title="Traditional Hiring vs Smart Hire" description="The difference is not just aesthetics. Smart Hire changes how quickly teams move from resume volume to confident hiring decisions." />
+          <SectionIntro
+            align="center"
+            eyebrow="Comparison"
+            title="Traditional Hiring vs Smart Hire"
+            description="The difference is not just aesthetics. Smart Hire changes how quickly teams move from resume volume to confident hiring decisions."
+            eyebrowClass={eyebrowClass}
+            titleClass={strongTextClass}
+            descriptionClass={mutedCopyClass}
+          />
 
           <div className="mt-8 grid gap-4 xl:grid-cols-2">
             {comparisonColumns.map((column) => (
               <article key={column.title} className={`rounded-[26px] border px-5 py-6 ${column.tone === 'accent' ? `${softPanelClass} ring-1 ring-cyan-400/20` : softPanelClass}`}>
-                <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${column.tone === 'accent' ? 'text-cyan-300' : subtleCopyClass}`}>{column.label}</p>
+                <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${column.tone === 'accent' ? eyebrowClass : subtleCopyClass}`}>{column.label}</p>
                 <h3 className={`mt-3 text-2xl font-semibold ${strongTextClass}`} style={displayFontStyle}>{column.title}</h3>
                 <div className="mt-5 space-y-3">
                   {column.points.map((point) => (
                     <div key={point} className={`flex items-start gap-3 rounded-[18px] border px-4 py-3 ${nestedCardClass}`}>
-                      <span className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${column.tone === 'accent' ? 'bg-cyan-400/12 text-cyan-200' : 'bg-white/8 text-slate-300'}`}>
+                      <span className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${column.tone === 'accent' ? accentPanelClass : mutedPillClass}`}>
                         {column.tone === 'accent' ? 'AI' : 'M'}
                       </span>
                       <p className={`text-sm leading-7 ${mutedCopyClass}`}>{point}</p>
@@ -434,14 +556,21 @@ function Landing() {
         </RevealOnScroll>
 
         <RevealOnScroll as="section" id="audience" className={`rounded-[32px] border px-5 py-6 sm:px-8 sm:py-8 lg:px-10 ${sectionShellClass}`} delay={180}>
-          <SectionIntro eyebrow="Who it helps" title="Built for recruiters and candidates, not just dashboards." description="Smart Hire creates value on both sides of the workflow: recruiters move faster and candidates are reviewed with stronger context." />
+          <SectionIntro
+            eyebrow="Who it helps"
+            title="Built for recruiters and candidates, not just dashboards."
+            description="Smart Hire creates value on both sides of the workflow: recruiters move faster and candidates are reviewed with stronger context."
+            eyebrowClass={eyebrowClass}
+            titleClass={strongTextClass}
+            descriptionClass={mutedCopyClass}
+          />
 
           <div className="mt-8 grid gap-4 xl:grid-cols-2">
             {audienceCards.map((card, index) => (
               <RevealOnScroll key={card.title} as="article" className={`rounded-[28px] border px-5 py-6 ${softPanelClass}`} delay={index * 70}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">{card.kicker}</p>
+                    <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${eyebrowClass}`}>{card.kicker}</p>
                     <h3 className={`mt-3 text-2xl font-semibold ${strongTextClass}`} style={displayFontStyle}>{card.title}</h3>
                   </div>
                   <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${accentBadgeClass}`}>Product-ready</span>
@@ -462,7 +591,7 @@ function Landing() {
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   {card.metrics.map((metric) => (
-                    <div key={metric.label} className="rounded-[18px] border border-white/8 bg-slate-950/70 px-4 py-4">
+                    <div key={metric.label} className={`rounded-[18px] border px-4 py-4 ${innerCardClass}`}>
                       <p className={`text-xs ${subtleCopyClass}`}>{metric.label}</p>
                       <p className={`mt-2 text-2xl font-semibold ${strongTextClass}`}>{metric.value}</p>
                     </div>
@@ -476,8 +605,8 @@ function Landing() {
         <RevealOnScroll as="section" id="cta" className={`rounded-[34px] border px-5 py-8 sm:px-8 sm:py-10 lg:px-12 ${sectionShellClass}`} delay={200}>
           <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
             <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300">Final CTA</p>
-              <h2 className={`mt-4 text-3xl font-semibold tracking-[-0.05em] ${strongTextClass} sm:text-4xl lg:text-[3.15rem]`} style={displayFontStyle}>
+              <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${eyebrowClass}`}>Final CTA</p>
+              <h2 className={`mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl lg:text-[3.15rem] ${strongTextClass}`} style={displayFontStyle}>
                 Make Smart Hire feel like a real recruitment product from the first screen.
               </h2>
               <p className={`mt-4 text-base leading-8 sm:text-lg ${mutedCopyClass}`}>

@@ -7,6 +7,10 @@ const Job = require('../models/Job');
 const { sendCandidateUploadedEmail } = require('../services/emailService');
 const ensureDatabaseConnection = require('../utils/ensureDatabaseConnection');
 const extractResumeText = require('../utils/extractResumeText');
+const UPLOAD_RESUME_PARSE_TIMEOUT_MS = Math.max(
+  500,
+  Number(process.env.UPLOAD_RESUME_PARSE_TIMEOUT_MS || 1500),
+);
 
 const normalizeCandidateSkills = (value) =>
   String(value || '')
@@ -57,6 +61,35 @@ const removeUploadedFile = async (filename) => {
       console.warn(`Uploaded file cleanup failed: ${error.message}`);
     }
   }
+};
+
+const parseResumeInBackground = ({ candidateId, filename }) => {
+  if (!candidateId || !filename) {
+    return;
+  }
+
+  void (async () => {
+    try {
+      const parsingResult = await extractResumeText(filename, {
+        timeoutMs: UPLOAD_RESUME_PARSE_TIMEOUT_MS,
+      });
+
+      await Candidate.findByIdAndUpdate(candidateId, {
+        resumeText: parsingResult.resumeText,
+        resumeParsingStatus: parsingResult.parsingStatus,
+        resumeParsingDetails: parsingResult.details,
+      });
+    } catch (error) {
+      await Candidate.findByIdAndUpdate(candidateId, {
+        resumeParsingStatus: 'parse_failed',
+        resumeParsingDetails:
+          error.message ||
+          'Resume parsing could not complete in the background, but the candidate was saved successfully.',
+      }).catch((updateError) => {
+        console.warn(`Background resume parsing status update failed: ${updateError.message}`);
+      });
+    }
+  })();
 };
 
 const uploadCandidate = async (req, res, next) => {
@@ -114,16 +147,17 @@ const uploadCandidate = async (req, res, next) => {
       });
     }
 
-    const parsingResult = await extractResumeText(req.file.filename);
-
     const candidate = await Candidate.create({
       fullName: normalizedFullName,
       email: normalizedEmail,
       phone: normalizedPhone,
       resumeUrl: `/uploads/${req.file.filename}`,
-      resumeText: parsingResult.resumeText,
-      resumeParsingStatus: parsingResult.parsingStatus,
-      resumeParsingDetails: parsingResult.details,
+      resumeText: '',
+      resumeParsingStatus: 'pending',
+      resumeParsingDetails:
+        normalizedCandidateSummary || normalizedCandidateSkills.length
+          ? 'Resume parsing is running in the background. SmartHire can already use the saved candidate summary and skills for scoring.'
+          : 'Resume parsing is running in the background. The candidate profile was saved successfully.',
       candidateSkills: normalizedCandidateSkills,
       candidateSummary: normalizedCandidateSummary,
       appliedJob,
@@ -131,22 +165,24 @@ const uploadCandidate = async (req, res, next) => {
       recruiterStatus: 'Pending Review',
     });
 
-    await sendCandidateUploadedEmail({
+    parseResumeInBackground({
+      candidateId: candidate._id,
+      filename: req.file.filename,
+    });
+
+    void sendCandidateUploadedEmail({
       to: req.user.email || process.env.EMAIL_USER,
       candidateName: candidate.fullName,
       jobTitle: job.title,
     });
 
     return res.status(201).json({
-      message:
-        parsingResult.parsingStatus === 'parsed'
-          ? 'Candidate uploaded successfully.'
-          : 'Candidate uploaded successfully, but resume parsing quality was limited. You can still continue using the candidate profile.',
+      message: 'Candidate uploaded successfully. Resume parsing will continue in the background.',
       candidate,
       parsing: {
-        status: parsingResult.parsingStatus,
-        details: parsingResult.details,
-        textLength: parsingResult.textLength,
+        status: candidate.resumeParsingStatus,
+        details: candidate.resumeParsingDetails,
+        textLength: 0,
       },
     });
   } catch (error) {
@@ -329,7 +365,9 @@ const getCandidates = async (req, res, next) => {
     }
 
     const candidates = await Candidate.find({ uploadedBy: req.user._id })
+      .select('-resumeText')
       .populate('appliedJob', 'title')
+      .lean()
       .sort({ uploadedAt: -1 });
 
     return res.status(200).json({
@@ -369,7 +407,9 @@ const getCandidatesByJob = async (req, res, next) => {
       uploadedBy: req.user._id,
       appliedJob: jobId,
     })
+      .select('-resumeText')
       .populate('appliedJob', 'title')
+      .lean()
       .sort({ uploadedAt: -1 });
 
     return res.status(200).json({

@@ -42,7 +42,7 @@ const generateScore = async (req, res, next) => {
 
     const hasManualContext = hasManualCandidateContext(candidate);
 
-    if (!candidate.resumeText || !candidate.resumeText.trim()) {
+    if ((!candidate.resumeText || !candidate.resumeText.trim()) && !hasManualContext) {
       try {
         const recoveredParsingResult = await extractResumeText(path.basename(candidate.resumeUrl || ''));
         candidate.resumeText = recoveredParsingResult.resumeText;
@@ -50,21 +50,11 @@ const generateScore = async (req, res, next) => {
         candidate.resumeParsingDetails = recoveredParsingResult.details;
         await candidate.save();
       } catch (error) {
-        if (!hasManualContext) {
-          return res.status(error.statusCode || 400).json({
-            message:
-              'Resume text is not available for this candidate. This usually means the resume file could not be recovered. Please reupload the resume and try again.',
-            details: error.message,
-          });
-        }
-
-        candidate.resumeParsingStatus = candidate.resumeParsingStatus || 'missing';
-        candidate.resumeParsingDetails = [
-          candidate.resumeParsingDetails,
-          `Resume recovery failed during scoring: ${error.message}`,
-        ]
-          .filter(Boolean)
-          .join(' ');
+        return res.status(error.statusCode || 400).json({
+          message:
+            'Resume text is not available for this candidate. This usually means the resume file could not be recovered. Please reupload the resume and try again.',
+          details: error.message,
+        });
       }
     }
 
@@ -143,7 +133,7 @@ const generateScore = async (req, res, next) => {
       },
     );
 
-    await sendScoreGeneratedEmail({
+    void sendScoreGeneratedEmail({
       to: req.user.email || process.env.EMAIL_USER,
       candidateName: candidate.fullName,
       jobTitle: job.title,

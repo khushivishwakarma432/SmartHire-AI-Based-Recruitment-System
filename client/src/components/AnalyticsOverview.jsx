@@ -140,7 +140,7 @@ const ChartBarList = ({ items, emptyMessage, colorClass = 'bg-emerald-500 dark:b
   );
 };
 
-function AnalyticsOverview({ summary, candidates, scoresByCandidate, isLoading }) {
+function AnalyticsOverview({ summary, candidates, scoresByCandidate, isLoading, isDetailsLoading = false }) {
   const { notifications } = useNotifications();
 
   const enrichedCandidates = useMemo(
@@ -360,35 +360,43 @@ function AnalyticsOverview({ summary, candidates, scoresByCandidate, isLoading }
             </Link>
           </div>
           <div className="mt-4 space-y-2.5">
-            {topScoredCandidates.length ? (
+            {isDetailsLoading && !topScoredCandidates.length ? (
+              Array.from({ length: 3 }, (_, index) => (
+                <div key={index} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-4 dark:border-slate-800 dark:bg-slate-950/45">
+                  <div className="skeleton-line w-32" />
+                  <div className="mt-2 skeleton-line w-40" />
+                  <div className="mt-3 skeleton-line w-full" />
+                </div>
+              ))
+            ) : topScoredCandidates.length ? (
               topScoredCandidates.map((candidate, index) => (
                 <div
                   key={candidate._id || candidate.candidateId}
                   className={`rounded-2xl border px-4 py-4 ${
                     index === 0
-                      ? 'border-emerald-300/90 bg-emerald-50/70 dark:border-emerald-500/30 dark:bg-emerald-950/20'
+                      ? 'top-candidate-highlight'
                       : 'border-slate-200/80 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/45'
                   }`}
                 >
                   <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-950 dark:text-white">{candidate.fullName}</p>
-                      <p className="mt-1 truncate text-[13px] text-slate-500 dark:text-slate-400">
+                      <p className={`truncate text-sm font-medium ${index === 0 ? 'top-candidate-highlight-name' : 'text-slate-950 dark:text-white'}`}>{candidate.fullName}</p>
+                      <p className={`mt-1 truncate text-[13px] ${index === 0 ? 'top-candidate-highlight-copy' : 'text-slate-500 dark:text-slate-400'}`}>
                         {candidate.appliedJob?.title || candidate.jobTitle || 'Job not assigned'}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      {index === 0 ? <span className="badge-success">Best Score</span> : null}
+                      {index === 0 ? <span className="top-candidate-highlight-badge">Best Score</span> : null}
                       {candidate.recruiterDecision === 'Shortlisted' ? (
                         <span className="badge-success">Shortlisted</span>
                       ) : null}
-                      <span className="badge-muted">
+                      <span className={index === 0 ? 'top-candidate-highlight-score' : 'badge-muted'}>
                         {typeof candidate.scoreValue === 'number' ? `${candidate.scoreValue}/100` : 'Not Scored'}
                       </span>
                       <span className={getFitClassName(candidate.scoreValue)}>{getFitLabel(candidate.scoreValue)}</span>
                     </div>
                   </div>
-                  <div className="mt-2.5 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  <div className={`mt-2.5 flex flex-wrap gap-2 text-xs ${index === 0 ? 'top-candidate-highlight-copy' : 'text-slate-500 dark:text-slate-400'}`}>
                     <span>Decision: {candidate.recruiterDecision || 'Pending Review'}</span>
                     {candidate.matchedSkills?.length ? (
                       <span>Matched skills: {candidate.matchedSkills.slice(0, 3).join(', ')}</span>
@@ -416,7 +424,14 @@ function AnalyticsOverview({ summary, candidates, scoresByCandidate, isLoading }
               </Link>
             </div>
             <div className="mt-3.5 space-y-2.5">
-              {interviewOverview.upcoming.length ? (
+              {isDetailsLoading && !interviewOverview.upcoming.length ? (
+                Array.from({ length: 3 }, (_, index) => (
+                  <div key={index} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3.5 py-3 dark:border-slate-800 dark:bg-slate-950/45">
+                    <div className="skeleton-line w-28" />
+                    <div className="mt-2 skeleton-line w-36" />
+                  </div>
+                ))
+              ) : interviewOverview.upcoming.length ? (
                 interviewOverview.upcoming.map((candidate) => (
                   <div key={candidate._id} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3.5 py-3 dark:border-slate-800 dark:bg-slate-950/45">
                     <div className="flex items-center justify-between gap-3">

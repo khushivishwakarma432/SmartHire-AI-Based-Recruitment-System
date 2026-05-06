@@ -1,52 +1,25 @@
-import { getStoredToken } from '../utils/auth';
+import { apiRequest, REQUEST_TIMEOUT_MS } from './request';
 
-import { getApiBaseUrl } from './baseUrl';
+export const getJobs = () => apiRequest('/api/jobs', { timeoutMs: REQUEST_TIMEOUT_MS });
 
-const API_BASE_URL = getApiBaseUrl();
-const buildApiError = (response, data) => {
-  const error = new Error(data.message || 'Something went wrong.');
-  error.statusCode = response.status;
-  return error;
-};
-
-const request = async (endpoint, options = {}) => {
-  const token = getStoredToken();
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw buildApiError(response, data);
-  }
-
-  return data;
-};
-
-export const getJobs = () => request('/api/jobs');
-
-export const getJobById = (jobId) => request(`/api/jobs/${jobId}`);
+export const getJobById = (jobId) => apiRequest(`/api/jobs/${jobId}`, { timeoutMs: REQUEST_TIMEOUT_MS });
 
 export const createJob = (payload) =>
-  request('/api/jobs', {
+  apiRequest('/api/jobs', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: payload,
+    timeoutMs: REQUEST_TIMEOUT_MS,
   });
 
 export const updateJob = (jobId, payload) =>
-  request(`/api/jobs/${jobId}`, {
+  apiRequest(`/api/jobs/${jobId}`, {
     method: 'PUT',
-    body: JSON.stringify(payload),
+    body: payload,
+    timeoutMs: REQUEST_TIMEOUT_MS,
   });
 
 export const deleteJob = (jobId) =>
-  request(`/api/jobs/${jobId}`, {
+  apiRequest(`/api/jobs/${jobId}`, {
     method: 'DELETE',
+    timeoutMs: REQUEST_TIMEOUT_MS,
   });

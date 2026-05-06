@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { getCurrentUser } from '../api/auth';
-import { getStoredToken } from '../utils/auth';
+import { getStoredToken, hasRecentSessionVerification } from '../utils/auth';
 import { isUnauthorizedError, removeToken } from '../utils/auth';
 
 function ProtectedRoute() {
@@ -18,6 +18,13 @@ function ProtectedRoute() {
       if (!token) {
         if (isMounted) {
           setStatus('unauthorized');
+        }
+        return;
+      }
+
+      if (hasRecentSessionVerification()) {
+        if (isMounted) {
+          setStatus('authorized');
         }
         return;
       }

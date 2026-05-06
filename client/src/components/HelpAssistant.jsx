@@ -1,324 +1,215 @@
-import { useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
-const guideTopics = [
+const suggestionChips = [
   {
-    id: 'overview',
-    label: 'What does SmartHire do?',
+    id: 'platform',
+    label: 'What does this platform do?',
     answer:
-      'SmartHire helps recruiters manage jobs, review candidates, generate AI evaluations, save hiring decisions, and keep interview steps in one workflow.',
-    actionLabel: 'Open dashboard',
-    actionTo: '/dashboard',
+      'SmartHire helps teams post jobs, upload candidates, review resumes, compare fit, and use AI-assisted scoring to move from screening to shortlist faster.',
   },
   {
-    id: 'create-job',
-    label: 'How do I create a job?',
+    id: 'screen-candidates',
+    label: 'How can I screen candidates?',
     answer:
-      'Open Jobs, choose Create Job, add the role details, required skills, and description, then save. That job becomes the base for candidate uploads and AI scoring.',
-    actionLabel: 'Create job',
-    actionTo: '/jobs/create',
+      'Open Candidates to review uploaded profiles, filter by role, compare applicants side by side, and use recruiter decisions plus AI summaries to narrow the shortlist quickly.',
   },
   {
-    id: 'upload',
-    label: 'How do I upload a candidate?',
+    id: 'ai-scoring',
+    label: 'Show AI scoring',
     answer:
-      'Open Upload Candidate, choose the job, enter the candidate details, and upload a PDF resume. If the resume is weak or partially readable, the manual candidate fields still help scoring.',
-    actionLabel: 'Go to upload',
-    actionTo: '/candidates/upload',
+      'The AI scoring flow compares a candidate against the selected job and returns a match score, matched skills, missing skills, and a short recommendation so you can review faster.',
   },
   {
-    id: 'scoring',
-    label: 'How does AI scoring work?',
+    id: 'features',
+    label: 'Explain features',
     answer:
-      'SmartHire compares the candidate profile with the selected job and returns a score, fit tag, matched skills, missing skills, and a short summary so recruiters can review faster.',
-    actionLabel: 'View candidates',
-    actionTo: '/candidates',
+      'SmartHire includes job management, candidate uploads, resume parsing support, recruiter review statuses, interview tracking, dashboard analytics, and AI-based scoring in one workflow.',
   },
 ];
 
-const supportTopics = [
-  {
-    id: 'login-issue',
-    label: 'Login issue',
-    answer:
-      'First confirm the backend is running and your credentials are correct. If the page keeps returning to login, try signing out fully, then log back in so SmartHire can refresh the saved session token.',
-    actionLabel: 'Open login',
-    actionTo: '/login',
-  },
-  {
-    id: 'upload-failed',
-    label: 'Resume upload failed',
-    answer:
-      'Use a readable PDF and make sure a job already exists before uploading. If parsing quality is weak, SmartHire can still use the manual candidate skills and summary fields during scoring.',
-    actionLabel: 'Upload candidate',
-    actionTo: '/candidates/upload',
-  },
-  {
-    id: 'score-failed',
-    label: 'AI score not generating',
-    answer:
-      'AI scoring can pause if the model is busy, the resume text is missing, or the candidate does not have a valid job attached. Try again from the candidate list after checking the uploaded candidate details.',
-    actionLabel: 'Open candidates',
-    actionTo: '/candidates',
-  },
-  {
-    id: 'theme-issue',
-    label: 'Theme not switching properly',
-    answer:
-      'Use the theme toggle in the header or sidebar. SmartHire saves the chosen mode locally, so a quick refresh should keep the same theme unless browser storage is cleared.',
-    actionLabel: 'Open settings',
-    actionTo: '/settings',
-  },
-  {
-    id: 'page-issue',
-    label: 'Page not loading correctly',
-    answer:
-      'If a page looks stuck, refresh first. If the issue only affects protected pages, check whether your login session is still valid and whether the frontend and backend are both running.',
-    actionLabel: 'Open dashboard',
-    actionTo: '/dashboard',
-  },
-  {
-    id: 'contact-support',
-    label: 'Contact support',
-    answer:
-      'For direct help, use the support contact in the footer. Include the page name, what action you tried, and the exact error message so the issue is easier to trace.',
-    actionLabel: 'Contact support',
-    actionHref: 'mailto:support@smarthire.ai',
-  },
-];
+const fallbackReply =
+  'SmartGuide can explain the product flow, candidate screening, AI scoring, dashboard areas, and core features. Try one of the suggestion chips for a faster answer.';
 
-const assistantConfig = {
-  guide: {
-    title: 'SmartGuide',
-    subtitle: 'Hiring workflow guide',
-    panelLabel: 'Quick answer',
-    intro: 'Need help using SmartHire? I can guide you through jobs, candidates, AI scoring, and recruiter actions.',
-    inputPlaceholder: 'Ask about SmartHire',
-    inputButtonLabel: 'Send SmartGuide question',
-    triggerTitle: 'SmartGuide',
-    triggerText: 'Open hiring guide',
-  },
-  support: {
-    title: 'Support Desk',
-    subtitle: 'Customer help assistant',
-    panelLabel: 'Support answer',
-    intro: 'Use support topics for login, upload, scoring, theme, and general troubleshooting help.',
-    inputPlaceholder: 'Describe the issue for a future support flow',
-    inputButtonLabel: 'Send support question',
-    triggerTitle: 'Support',
-    triggerText: 'Get help with common SmartHire issues.',
-  },
-};
+function SmartGuideLogo() {
+  return (
+    <span className="smartguide-logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path
+          d="M8.25 10.25a3.75 3.75 0 0 1 7.5 0v.5a2 2 0 0 0 .42 1.22l.57.74a.95.95 0 0 1-.75 1.54H8a.95.95 0 0 1-.75-1.54l.57-.74a2 2 0 0 0 .43-1.22v-.5Z"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.7"
+        />
+        <path d="M10.35 16.35a1.8 1.8 0 0 0 3.3 0" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
+        <path d="M18.15 4.65v2.2" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
+        <path d="M17.05 5.75h2.2" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
+      </svg>
+    </span>
+  );
+}
+
+function MinimizeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 11.25h12v1.5H6z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M7.06 8.12 8.12 7.06 12 10.94l3.88-3.88 1.06 1.06L13.06 12l3.88 3.88-1.06 1.06L12 13.06l-3.88 3.88-1.06-1.06L10.94 12 7.06 8.12Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m3.75 11.98 15.74-6.43c.72-.29 1.46.45 1.17 1.17l-6.43 15.74c-.31.77-1.43.68-1.63-.14l-1.62-6.52-6.52-1.62c-.82-.2-.91-1.32-.14-1.63Zm8.15 2.12 1.08 4.35 4.57-11.18-11.18 4.57 4.35 1.08 3.95-3.95 1.06 1.06-3.83 4.07Z" fill="currentColor" />
+    </svg>
+  );
+}
 
 function HelpAssistant() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [openAssistant, setOpenAssistant] = useState(null);
-  const [selectedGuideTopicId, setSelectedGuideTopicId] = useState('overview');
-  const [selectedSupportTopicId, setSelectedSupportTopicId] = useState('login-issue');
-  const [guideDraftMessage, setGuideDraftMessage] = useState('');
-  const [supportDraftMessage, setSupportDraftMessage] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [activeAnswer, setActiveAnswer] = useState(suggestionChips[0].answer);
+  const [activeChipId, setActiveChipId] = useState(suggestionChips[0].id);
 
-  const activeTopics = openAssistant === 'support' ? supportTopics : guideTopics;
-  const activeTopicId = openAssistant === 'support' ? selectedSupportTopicId : selectedGuideTopicId;
-  const activeTopic = useMemo(
-    () => activeTopics.find((topic) => topic.id === activeTopicId) || activeTopics[0],
-    [activeTopicId, activeTopics]
-  );
+  const greeting = 'Hi! I can help you understand how SmartHire works.';
 
-  const activeConfig = assistantConfig[openAssistant || 'guide'];
-  const activeDraftMessage = openAssistant === 'support' ? supportDraftMessage : guideDraftMessage;
-
-  const contextualAction = useMemo(() => {
-    if (openAssistant === 'support') {
-      return { label: 'Close panel', action: () => setOpenAssistant(null) };
-    }
-
-    if (location.pathname.startsWith('/candidates')) {
-      return { label: 'Go to Candidates', to: '/candidates' };
-    }
-
-    if (location.pathname.startsWith('/jobs')) {
-      return { label: 'Go to Jobs', to: '/jobs' };
-    }
-
-    return { label: 'Go to Dashboard', to: '/dashboard' };
-  }, [openAssistant, location.pathname]);
-
-  const handleOpenAssistant = (assistantId) => {
-    setOpenAssistant((current) => (current === assistantId ? null : assistantId));
+  const handleSuggestionClick = (chip) => {
+    setActiveChipId(chip.id);
+    setActiveAnswer(chip.answer);
   };
 
-  const handleTopicSelect = (topicId) => {
-    if (openAssistant === 'support') {
-      setSelectedSupportTopicId(topicId);
-      return;
-    }
-
-    setSelectedGuideTopicId(topicId);
-  };
-
-  const handleAction = (topic) => {
-    setOpenAssistant(null);
-
-    if (topic.actionHref) {
-      window.location.href = topic.actionHref;
-      return;
-    }
-
-    if (topic.actionTo) {
-      navigate(topic.actionTo);
-    }
-  };
-
-  const handleContextualAction = () => {
-    if (contextualAction.action) {
-      contextualAction.action();
-      return;
-    }
-
-    if (contextualAction.to) {
-      setOpenAssistant(null);
-      navigate(contextualAction.to);
-    }
-  };
-
-  const handleDraftSubmit = (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (!activeDraftMessage.trim()) {
+    if (!draft.trim()) {
       return;
     }
 
-    if (openAssistant === 'support') {
-      setSupportDraftMessage('');
-      return;
-    }
+    const normalized = draft.trim().toLowerCase();
+    const matchedChip = suggestionChips.find((chip) => {
+      const normalizedLabel = chip.label.toLowerCase().replace(/[?]/g, '');
+      return normalized.includes(normalizedLabel) || normalizedLabel.includes(normalized);
+    });
 
-    setGuideDraftMessage('');
+    setActiveChipId(matchedChip?.id || '');
+    setActiveAnswer(matchedChip?.answer || fallbackReply);
+    setDraft('');
   };
 
-  const handleDraftChange = (value) => {
-    if (openAssistant === 'support') {
-      setSupportDraftMessage(value);
-      return;
-    }
+  const handleMinimize = () => {
+    setIsOpen(false);
+  };
 
-    setGuideDraftMessage(value);
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
+  const handleOpen = () => {
+    setIsOpen(true);
   };
 
   return (
     <div className="smartguide-shell" aria-live="polite">
-      <div
-        id="smartguide-panel"
-        className={`smartguide-panel ${openAssistant ? 'smartguide-panel-open' : 'smartguide-panel-closed'}`}
-      >
-        {openAssistant ? (
-          <div className="smartguide-panel-inner">
-            <div className="smartguide-head">
-              <div>
-                <p className="smartguide-kicker">{activeConfig.title}</p>
-                <h2 className="smartguide-title">{activeConfig.subtitle}</h2>
-                <p className="smartguide-copy">{activeConfig.intro}</p>
-              </div>
-              <div className="smartguide-head-actions">
-                <button
-                  type="button"
-                  className="smartguide-icon-button"
-                  onClick={() => setOpenAssistant(null)}
-                  aria-label={`Close ${activeConfig.title}`}
-                >
-                  <span className="smartguide-icon-glyph">x</span>
-                </button>
-              </div>
+      {isOpen ? (
+        <section id="smartguide-panel" className="smartguide-card" aria-label="SmartGuide assistant">
+          <div className="smartguide-card-top">
+            <div className="smartguide-badge-icon">
+              <SmartGuideLogo />
+            </div>
+            <div className="smartguide-head-copy">
+              <p className="smartguide-kicker">SmartGuide</p>
+              <h2 className="smartguide-title">Product guide</h2>
+            </div>
+            <div className="smartguide-head-actions">
+              <button
+                type="button"
+                className="smartguide-icon-button"
+                onClick={handleMinimize}
+                aria-label="Minimize SmartGuide"
+              >
+                <MinimizeIcon />
+              </button>
+              <button
+                type="button"
+                className="smartguide-icon-button"
+                onClick={handleClose}
+                aria-label="Close SmartGuide"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          </div>
+
+          <div className="smartguide-body">
+            <div className="smartguide-message smartguide-message-primary">
+              <p className="smartguide-message-title">Hi there</p>
+              <p className="smartguide-message-copy">{greeting}</p>
             </div>
 
-            {openAssistant === 'guide' ? (
-              <div className="smartguide-welcome-bubble">
-                <p className="smartguide-welcome-title">Need help using SmartHire?</p>
-                <p className="smartguide-welcome-copy">
-                  I can guide you through jobs, candidates, AI scoring, and recruiter actions.
-                </p>
-              </div>
-            ) : null}
-
-            <div className={`smartguide-topic-list ${openAssistant === 'guide' ? 'smartguide-topic-grid' : ''}`}>
-              {activeTopics.map((topic) => (
+            <div className="smartguide-chip-wrap" role="list" aria-label="Suggested questions">
+              {suggestionChips.map((chip) => (
                 <button
-                  key={topic.id}
+                  key={chip.id}
                   type="button"
-                  className={`smartguide-topic ${topic.id === activeTopic.id ? 'smartguide-topic-active' : ''}`}
-                  onClick={() => handleTopicSelect(topic.id)}
+                  className={`smartguide-chip ${activeChipId === chip.id ? 'smartguide-chip-active' : ''}`}
+                  onClick={() => handleSuggestionClick(chip)}
                 >
-                  {topic.label}
+                  {chip.label}
                 </button>
               ))}
             </div>
 
-            <div className="smartguide-answer">
-              <p className="smartguide-answer-label">{activeConfig.panelLabel}</p>
-              <p className="smartguide-answer-title">{activeTopic.label}</p>
-              <p className="smartguide-answer-copy">{activeTopic.answer}</p>
+            <div className="smartguide-message smartguide-message-secondary">
+              <p className="smartguide-answer-label">Quick answer</p>
+              <p className="smartguide-message-copy">{activeAnswer}</p>
             </div>
 
-            <form className="smartguide-input-wrap" onSubmit={handleDraftSubmit}>
+            <form className="smartguide-input-wrap" onSubmit={handleSubmit}>
               <label className="sr-only" htmlFor="smartguide-input">
-                Ask {activeConfig.title}
+                Ask about SmartHire
               </label>
               <input
                 id="smartguide-input"
                 className="smartguide-input"
                 type="text"
-                placeholder={activeConfig.inputPlaceholder}
-                value={activeDraftMessage}
-                onChange={(event) => handleDraftChange(event.target.value)}
+                placeholder="Ask about SmartHire"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
               />
-              <button className="smartguide-send" type="submit" aria-label={activeConfig.inputButtonLabel}>
-                <span aria-hidden="true">↗</span>
+              <button className="smartguide-send" type="submit" aria-label="Send SmartGuide message">
+                <SendIcon />
               </button>
             </form>
-
-            <div className="smartguide-foot">
-              <button type="button" className="btn-primary btn-compact" onClick={() => handleAction(activeTopic)}>
-                {activeTopic.actionLabel}
-              </button>
-              <button type="button" className="smartguide-text-button" onClick={handleContextualAction}>
-                {contextualAction.label}
-              </button>
-            </div>
           </div>
-        ) : null}
-      </div>
-
-      <div className="smartguide-launch-group">
+        </section>
+      ) : (
         <button
           type="button"
-          className={`smartguide-trigger ${openAssistant === 'guide' ? 'smartguide-trigger-active' : ''}`}
-          onClick={() => handleOpenAssistant('guide')}
-          aria-expanded={openAssistant === 'guide'}
+          className="smartguide-trigger"
+          onClick={handleOpen}
+          aria-expanded="false"
           aria-controls="smartguide-panel"
         >
-          <span className="smartguide-trigger-mark">G</span>
+          <span className="smartguide-trigger-mark">
+            <SmartGuideLogo />
+          </span>
           <span className="smartguide-trigger-copy">
             <span className="smartguide-trigger-title">SmartGuide</span>
-            <span className="smartguide-trigger-text">Learn how SmartHire works step by step.</span>
+            <span className="smartguide-trigger-text">Open assistant</span>
           </span>
         </button>
-
-        <button
-          type="button"
-          className={`smartguide-trigger ${openAssistant === 'support' ? 'smartguide-trigger-active' : ''}`}
-          onClick={() => handleOpenAssistant('support')}
-          aria-expanded={openAssistant === 'support'}
-          aria-controls="smartguide-panel"
-        >
-          <span className="smartguide-trigger-mark">S</span>
-          <span className="smartguide-trigger-copy">
-            <span className="smartguide-trigger-title">Support</span>
-            <span className="smartguide-trigger-text">Get help with common SmartHire issues.</span>
-          </span>
-        </button>
-      </div>
+      )}
     </div>
   );
 }

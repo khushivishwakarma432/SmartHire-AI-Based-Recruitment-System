@@ -35,7 +35,34 @@ const getWeakTextReason = (text) => {
   return '';
 };
 
-const extractResumeText = async (filename) => {
+const parsePdfTextWithTimeout = async (parser, timeoutMs) => {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return parser.getText();
+  }
+
+  let timeoutId;
+
+  try {
+    return await Promise.race([
+      parser.getText(),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          const error = new Error('Resume parsing timed out.');
+          error.statusCode = 504;
+          error.code = 'PARSING_TIMEOUT';
+          reject(error);
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
+
+const extractResumeText = async (filename, options = {}) => {
+  const { timeoutMs = null } = options;
   const normalizedFilename = String(filename || '').trim();
 
   if (!normalizedFilename) {
@@ -60,9 +87,20 @@ const extractResumeText = async (filename) => {
 
   try {
     parser = new PDFParse({ data: fileBuffer });
-    parsedPdf = await parser.getText();
+    parsedPdf = await parsePdfTextWithTimeout(parser, timeoutMs);
   } catch (error) {
     console.warn(`Resume PDF parsing failed for ${normalizedFilename}: ${error.message}`);
+
+    if (error.code === 'PARSING_TIMEOUT') {
+      return {
+        resumeText: '',
+        parsingStatus: 'parse_failed',
+        details:
+          'Resume parsing took longer than expected, so SmartHire saved the candidate first and will rely on manual candidate details for scoring when needed.',
+        textLength: 0,
+      };
+    }
+
     return {
       resumeText: '',
       parsingStatus: 'parse_failed',

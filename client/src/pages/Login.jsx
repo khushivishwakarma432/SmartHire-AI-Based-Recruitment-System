@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { getCurrentUser, loginUser } from '../api/auth';
 import { useToast } from '../components/ToastProvider';
-import { getStoredToken, isUnauthorizedError, removeToken, storeToken } from '../utils/auth';
+import { getStoredToken, hasRecentSessionVerification, isUnauthorizedError, markSessionVerified, removeToken, storeToken } from '../utils/auth';
 
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -25,6 +25,13 @@ function Login() {
       const token = getStoredToken();
 
       if (!token) {
+        return;
+      }
+
+      if (hasRecentSessionVerification()) {
+        if (isMounted) {
+          navigate('/dashboard', { replace: true });
+        }
         return;
       }
 
@@ -95,6 +102,7 @@ function Login() {
 
       setSuccessMessage('Login successful. Redirecting to your dashboard...');
       storeToken(data.token);
+      markSessionVerified(data.user || null);
       showToast({
         title: 'Logged in',
         message: 'You are back in SmartHire.',
@@ -169,11 +177,21 @@ function Login() {
           </button>
         </form>
 
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+          <p className="text-sm font-semibold text-slate-900">New to SmartHire?</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Create your recruiter account to start managing jobs, candidates, and hiring decisions.
+          </p>
+          <Link className="btn-secondary mt-4 w-full justify-center" to="/signup">
+            Create Account
+          </Link>
+        </div>
+
         <div className="mt-8 flex flex-col gap-4 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-600">
             Don&apos;t have an account?{' '}
             <Link className="font-semibold text-sky-700 transition hover:text-sky-800" to="/signup">
-              Create one
+              Sign up
             </Link>
           </p>
           <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Secure sign in</p>

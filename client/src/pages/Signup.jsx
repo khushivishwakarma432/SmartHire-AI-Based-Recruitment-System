@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { getCurrentUser, registerUser } from '../api/auth';
 import { useToast } from '../components/ToastProvider';
-import { getStoredToken, isUnauthorizedError, removeToken, storeToken } from '../utils/auth';
+import { getStoredToken, hasRecentSessionVerification, isUnauthorizedError, markSessionVerified, removeToken, storeToken } from '../utils/auth';
 
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -14,6 +14,7 @@ function Signup() {
     name: '',
     email: '',
     password: '',
+    role: 'hr',
   });
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -26,6 +27,13 @@ function Signup() {
       const token = getStoredToken();
 
       if (!token) {
+        return;
+      }
+
+      if (hasRecentSessionVerification()) {
+        if (isMounted) {
+          navigate('/dashboard', { replace: true });
+        }
         return;
       }
 
@@ -104,9 +112,11 @@ function Signup() {
         name: normalizedName,
         email: normalizedEmail,
         password: normalizedPassword,
+        role: formData.role,
       });
       setSuccessMessage('Account created successfully. Redirecting to your dashboard...');
       storeToken(data.token);
+      markSessionVerified(data.user || null);
       showToast({
         title: 'Account created',
         message: 'Your account is ready.',
@@ -142,12 +152,12 @@ function Signup() {
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <label className="block">
-            <span className="field-label">Name</span>
+            <span className="field-label">Full Name</span>
             <input
               className="input-field"
               type="text"
               name="name"
-              placeholder="Your name"
+              placeholder="Your full name"
               autoComplete="name"
               required
               value={formData.name}
@@ -183,6 +193,18 @@ function Signup() {
             />
           </label>
 
+          <label className="block">
+            <span className="field-label">Role (Optional)</span>
+            <select
+              className="input-field"
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+            >
+              <option value="hr">Recruiter / HR</option>
+            </select>
+          </label>
+
           {error ? <p className="alert-error">{error}</p> : null}
           {successMessage ? <p className="alert-success">{successMessage}</p> : null}
 
@@ -191,7 +213,7 @@ function Signup() {
             type="submit"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Creating account...' : 'Sign up'}
+            {isSubmitting ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 

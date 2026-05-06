@@ -3,7 +3,6 @@
 import { removeToken } from '../utils/auth';
 import { useEffect, useState } from 'react';
 import GlobalSearch from './GlobalSearch';
-import HelpAssistant from './HelpAssistant';
 import NotificationBell from './NotificationBell';
 import ProductFooter from './ProductFooter';
 import ThemeToggle from './ThemeToggle';
@@ -106,7 +105,7 @@ function AppShell({ title, description, actions, children }) {
   return (
     <main className="app-page">
       <div className="app-container space-y-4 xl:grid xl:grid-cols-[248px_minmax(0,1fr)] xl:items-start xl:gap-4 xl:space-y-0 2xl:grid-cols-[260px_minmax(0,1fr)]">
-        <header className={`workflow-header xl:hidden ${isDark ? 'border-[#1E293B] bg-[#0F172A]' : 'border-slate-200 bg-white'}`}>
+        <header className="workflow-header xl:hidden">
           <div className="flex items-start justify-between gap-3">
             <Link className="flex min-w-0 items-center gap-3" to="/dashboard">
               <span className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-semibold tracking-[0.18em] ${isDark ? 'bg-emerald-500/14 text-emerald-200' : 'bg-slate-950 text-white'}`}>
@@ -164,7 +163,7 @@ function AppShell({ title, description, actions, children }) {
           id="app-shell-sidebar"
           className={`workflow-rail fixed inset-y-0 left-0 z-[85] w-[min(90vw,22rem)] overflow-y-auto rounded-none rounded-r-[28px] transition-transform duration-200 xl:sticky xl:top-6 xl:z-auto xl:min-h-[calc(100vh-3rem)] xl:w-auto xl:rounded-[28px] ${
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'
-          } ${isDark ? 'border-[#1E293B] bg-[#0F172A] text-white' : 'border-slate-200 bg-white text-slate-950'}`}
+          }`}
         >
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
             <Link className="flex min-w-0 items-center gap-3" to="/dashboard">
@@ -179,7 +178,6 @@ function AppShell({ title, description, actions, children }) {
               </div>
             </Link>
             <div className="flex items-center gap-2">
-              <ThemeToggle isDark={isDark} onToggle={toggleTheme} className="hidden xl:inline-flex" />
               <button
                 className="btn-secondary btn-compact px-3 xl:hidden"
                 type="button"
@@ -273,7 +271,7 @@ function AppShell({ title, description, actions, children }) {
         </aside>
 
         <div className="flex min-w-0 flex-col gap-4">
-          <header className={`workflow-header hidden xl:block ${isDark ? 'border-[#1E293B] bg-[#0F172A]' : 'border-slate-200 bg-white'}`}>
+          <header className="workflow-header hidden xl:block">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
                 <p className={`text-[0.72rem] font-semibold uppercase tracking-[0.26em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -286,6 +284,7 @@ function AppShell({ title, description, actions, children }) {
                 <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
                   <GlobalSearch />
                   <NotificationBell />
+                  <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
                 </div>
                 {actions ? <div className="flex flex-wrap gap-2 xl:justify-end">{actions}</div> : null}
               </div>
@@ -297,7 +296,6 @@ function AppShell({ title, description, actions, children }) {
       </div>
 
       <ProductFooter />
-      <HelpAssistant />
     </main>
   );
 }

@@ -1,39 +1,9 @@
-import { getStoredToken } from '../utils/auth';
-
-import { getApiBaseUrl } from './baseUrl';
-
-const API_BASE_URL = getApiBaseUrl();
-const buildApiError = (response, data) => {
-  const error = new Error(data.message || 'Something went wrong.');
-  error.statusCode = response.status;
-  error.details = data.details || '';
-  return error;
-};
-
-const request = async (endpoint, options = {}) => {
-  const token = getStoredToken();
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw buildApiError(response, data);
-  }
-
-  return data;
-};
+import { REQUEST_TIMEOUT_MS, apiRequest } from './request';
 
 export const generateScore = async (candidateId, jobId) => {
-  return request(`/api/scores/generate/${candidateId}/${jobId}`, {
+  return apiRequest(`/api/scores/generate/${candidateId}/${jobId}`, {
     method: 'POST',
+    timeoutMs: null,
   });
 };
 
@@ -50,5 +20,7 @@ export const getLatestScores = async (params = {}) => {
 
   const queryString = searchParams.toString();
 
-  return request(`/api/scores/latest${queryString ? `?${queryString}` : ''}`);
+  return apiRequest(`/api/scores/latest${queryString ? `?${queryString}` : ''}`, {
+    timeoutMs: REQUEST_TIMEOUT_MS,
+  });
 };

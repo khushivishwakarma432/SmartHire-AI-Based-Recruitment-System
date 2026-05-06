@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
 import { getCurrentUser } from '../api/auth';
-import { getStoredToken, isUnauthorizedError, removeToken } from '../utils/auth';
+import { getStoredToken, hasRecentSessionVerification, isUnauthorizedError, removeToken } from '../utils/auth';
 
 function PublicOnlyRoute() {
   const token = getStoredToken();
@@ -15,6 +15,13 @@ function PublicOnlyRoute() {
       if (!token) {
         if (isMounted) {
           setStatus('public');
+        }
+        return;
+      }
+
+      if (hasRecentSessionVerification()) {
+        if (isMounted) {
+          setStatus('authenticated');
         }
         return;
       }

@@ -29,7 +29,7 @@ const candidateSchema = new mongoose.Schema({
   },
   resumeParsingStatus: {
     type: String,
-    enum: ['parsed', 'weak', 'missing_text', 'parse_failed'],
+    enum: ['pending', 'parsed', 'weak', 'missing_text', 'parse_failed'],
     default: 'parse_failed',
   },
   resumeParsingDetails: {
@@ -100,5 +100,8 @@ const candidateSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+candidateSchema.index({ uploadedBy: 1, uploadedAt: -1 });
+candidateSchema.index({ uploadedBy: 1, appliedJob: 1, uploadedAt: -1 });
 
 module.exports = mongoose.model('Candidate', candidateSchema);

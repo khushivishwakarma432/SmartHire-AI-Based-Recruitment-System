@@ -8,6 +8,26 @@ import { getStoredToken, isUnauthorizedError, removeToken } from '../utils/auth'
 import { getStoredSettings, storeSettings } from '../utils/settings';
 import { setStoredTheme, useTheme } from '../utils/theme';
 
+const SunIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+    <circle cx="12" cy="12" r="4.25" />
+    <path
+      d="M12 2.75v2.5M12 18.75v2.5M21.25 12h-2.5M5.25 12h-2.5M18.54 5.46l-1.77 1.77M7.23 16.77l-1.77 1.77M18.54 18.54l-1.77-1.77M7.23 7.23 5.46 5.46"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+    <path
+      d="M20.04 14.12A8.5 8.5 0 1 1 9.88 3.96a6.9 6.9 0 0 0 10.16 10.16Z"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 function Settings() {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -229,19 +249,31 @@ function Settings() {
               <p className="kicker">Appearance</p>
               <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">Theme preference</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Dark mode stays the premium default, but you can switch anytime.
+                Choose the presentation that feels best for your workspace and lighting.
               </p>
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {[
-                { value: 'dark', label: 'Dark Mode', detail: 'Premium recruiter dashboard default' },
-                { value: 'light', label: 'Light Mode', detail: 'Bright, clean alternative to dark mode' },
+                {
+                  value: 'dark',
+                  label: 'Dark Mode',
+                  detail: 'Low-glare interface with deeper surfaces',
+                  icon: <MoonIcon />,
+                },
+                {
+                  value: 'light',
+                  label: 'Light Mode',
+                  detail: 'Bright, balanced layout with crisp contrast',
+                  icon: <SunIcon />,
+                },
               ].map((option) => (
                 <label
                   key={option.value}
                   className={`panel-muted cursor-pointer transition ${
-                    formData.themePreference === option.value ? 'ring-2 ring-emerald-400/60' : ''
+                    formData.themePreference === option.value
+                      ? 'ring-2 ring-emerald-400/60 shadow-[0_18px_40px_-30px_rgba(16,185,129,0.28)]'
+                      : ''
                   }`}
                 >
                   <input
@@ -252,7 +284,23 @@ function Settings() {
                     checked={formData.themePreference === option.value}
                     onChange={handleThemeChange}
                   />
-                  <p className="text-sm font-semibold text-slate-900">{option.label}</p>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${
+                        option.value === 'dark'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {option.icon}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{option.label}</p>
+                      <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                        {option.value === formData.themePreference ? 'Active theme' : 'Available'}
+                      </p>
+                    </div>
+                  </div>
                   <p className="mt-2 text-sm leading-6 text-slate-600">{option.detail}</p>
                 </label>
               ))}
