@@ -5,6 +5,7 @@ const ensureDatabaseConnection = require('../utils/ensureDatabaseConnection');
 const generateToken = require('../utils/generateToken');
 
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+const ALLOWED_SIGNUP_ROLES = new Set(['admin', 'hr', 'recruiter']);
 
 const sanitizeUser = (user) => ({
   id: user._id,
@@ -23,6 +24,7 @@ const registerUser = async (req, res, next) => {
     const normalizedName = String(name || '').trim();
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const normalizedPassword = String(password || '');
+    const normalizedRole = String(role || '').trim().toLowerCase();
 
     if (!normalizedName || !normalizedEmail || !normalizedPassword) {
       return res.status(400).json({
@@ -62,7 +64,7 @@ const registerUser = async (req, res, next) => {
       name: normalizedName,
       email: normalizedEmail,
       password: hashedPassword,
-      role: role === 'hr' ? 'hr' : 'hr',
+      role: ALLOWED_SIGNUP_ROLES.has(normalizedRole) ? normalizedRole : 'hr',
     });
 
     return res.status(201).json({

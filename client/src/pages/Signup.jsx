@@ -3,9 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { getCurrentUser, registerUser } from '../api/auth';
 import { useToast } from '../components/ToastProvider';
+import { prefetchCommonProtectedRouteChunks } from '../routes/routeModules';
 import { getStoredToken, hasRecentSessionVerification, isUnauthorizedError, markSessionVerified, removeToken, storeToken } from '../utils/auth';
+import { prefetchProtectedExperience } from '../utils/prefetch';
 
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+const signupRoleOptions = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'hr', label: 'HR' },
+  { value: 'recruiter', label: 'Recruiter' },
+];
 
 function Signup() {
   const navigate = useNavigate();
@@ -14,7 +21,7 @@ function Signup() {
     name: '',
     email: '',
     password: '',
-    role: 'hr',
+    role: 'recruiter',
   });
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -114,9 +121,16 @@ function Signup() {
         password: normalizedPassword,
         role: formData.role,
       });
+
+      if (!data?.token) {
+        throw new Error('Signup succeeded but no session token was returned.');
+      }
+
       setSuccessMessage('Account created successfully. Redirecting to your dashboard...');
       storeToken(data.token);
       markSessionVerified(data.user || null);
+      prefetchCommonProtectedRouteChunks();
+      prefetchProtectedExperience();
       showToast({
         title: 'Account created',
         message: 'Your account is ready.',
@@ -201,7 +215,11 @@ function Signup() {
               value={formData.role}
               onChange={handleChange}
             >
-              <option value="hr">Recruiter / HR</option>
+              {signupRoleOptions.map((roleOption) => (
+                <option key={roleOption.value} value={roleOption.value}>
+                  {roleOption.label}
+                </option>
+              ))}
             </select>
           </label>
 

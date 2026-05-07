@@ -1,7 +1,9 @@
+const allowedWorkspaceRoles = new Set(['admin', 'hr', 'recruiter']);
+
 const requireHr = (req, res, next) => {
-  if (!req.user || req.user.role !== 'hr') {
+  if (!req.user || !allowedWorkspaceRoles.has(req.user.role)) {
     return res.status(403).json({
-      message: 'Access denied. HR role required.',
+      message: 'Access denied. A valid workspace role is required.',
     });
   }
 

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { getCandidates } from '../api/candidates';
-import { getJobs } from '../api/jobs';
+import { getCachedCandidates, getCandidates } from '../api/candidates';
+import { getCachedJobs, getJobs } from '../api/jobs';
 import AppShell from '../components/AppShell';
 import { isUnauthorizedError, removeToken } from '../utils/auth';
 
@@ -89,21 +89,31 @@ const getInterviewStatusClassName = (status) => {
 function InterviewCalendar() {
   const navigate = useNavigate();
   const today = useMemo(() => new Date(), []);
-  const [jobs, setJobs] = useState([]);
-  const [candidates, setCandidates] = useState([]);
+  const [jobs, setJobs] = useState(() => getCachedJobs({ allowStale: true })?.data?.jobs || []);
+  const [candidates, setCandidates] = useState(() => getCachedCandidates('', { allowStale: true })?.data?.candidates || []);
   const [selectedJob, setSelectedJob] = useState('');
   const [selectedCandidateId, setSelectedCandidateId] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [monthDate, setMonthDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [modalState, setModalState] = useState({ isOpen: false, title: '', items: [] });
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    const hasCachedJobs = Boolean(getCachedJobs({ allowStale: true })?.data);
+    const hasCachedCandidates = Boolean(getCachedCandidates('', { allowStale: true })?.data);
+    return !(hasCachedJobs && hasCachedCandidates);
+  });
 
   useEffect(() => {
     let isMounted = true;
 
     const loadCalendarData = async () => {
-      setIsLoading(true);
+      const hasCachedJobs = Boolean(getCachedJobs({ allowStale: true })?.data);
+      const hasCachedCandidates = Boolean(getCachedCandidates('', { allowStale: true })?.data);
+
+      if (!(hasCachedJobs && hasCachedCandidates)) {
+        setIsLoading(true);
+      }
+
       setError('');
 
       try {

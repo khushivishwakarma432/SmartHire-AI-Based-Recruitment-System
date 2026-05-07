@@ -1,4 +1,9 @@
-import { markSessionVerified } from '../utils/auth';
+import {
+  getCachedAuthenticatedUser,
+  getStoredToken,
+  hasRecentSessionVerification,
+  markSessionVerified,
+} from '../utils/auth';
 
 import { apiRequest, AUTH_REQUEST_TIMEOUT_MS } from './request';
 
@@ -18,7 +23,14 @@ export const loginUser = (payload) =>
     timeoutMs: AUTH_REQUEST_TIMEOUT_MS,
   });
 
-export const getCurrentUser = async (token) => {
+export const getCurrentUser = async (token, options = {}) => {
+  const { preferCache = false } = options;
+  const cachedUser = getCachedAuthenticatedUser();
+
+  if (preferCache && cachedUser && hasRecentSessionVerification()) {
+    return cachedUser;
+  }
+
   const data = await apiRequest('/api/auth/me', {
     method: 'GET',
     headers: {
@@ -30,4 +42,14 @@ export const getCurrentUser = async (token) => {
   const user = data.user || data;
   markSessionVerified(user);
   return user;
+};
+
+export const prefetchCurrentUser = () => {
+  const token = getStoredToken();
+
+  if (!token) {
+    return Promise.resolve(null);
+  }
+
+  return getCurrentUser(token, { preferCache: true }).catch(() => null);
 };

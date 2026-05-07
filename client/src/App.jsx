@@ -1,27 +1,65 @@
-import { Suspense, lazy } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Suspense } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
+import AppShell from './components/AppShell';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicOnlyRoute from './components/PublicOnlyRoute';
 import HelpAssistant from './components/HelpAssistant';
 import AuthLayout from './layouts/AuthLayout';
-const CompareCandidates = lazy(() => import('./pages/CompareCandidates'));
-const CandidatesList = lazy(() => import('./pages/CandidatesList'));
-const CreateJob = lazy(() => import('./pages/CreateJob'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const EditJob = lazy(() => import('./pages/EditJob'));
-const JobDetails = lazy(() => import('./pages/JobDetails'));
-const JobsList = lazy(() => import('./pages/JobsList'));
-const InterviewCalendar = lazy(() => import('./pages/InterviewCalendar'));
-const Landing = lazy(() => import('./pages/Landing'));
-const Login = lazy(() => import('./pages/Login'));
-const NotFound = lazy(() => import('./pages/NotFound'));
-const Pipeline = lazy(() => import('./pages/Pipeline'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Signup = lazy(() => import('./pages/Signup'));
-const UploadCandidate = lazy(() => import('./pages/UploadCandidate'));
+import {
+  CandidatesList,
+  CompareCandidates,
+  CreateJob,
+  Dashboard,
+  EditJob,
+  InterviewCalendar,
+  JobDetails,
+  JobsList,
+  Landing,
+  Login,
+  NotFound,
+  Pipeline,
+  Settings,
+  Signup,
+  UploadCandidate,
+  getRouteMeta,
+} from './routes/routeModules';
 
 function RouteLoadingState() {
+  const location = useLocation();
+  const routeMeta = getRouteMeta(location.pathname);
+
+  if (routeMeta) {
+    return (
+      <AppShell title={routeMeta.title} description={routeMeta.description}>
+        <div className="space-y-4">
+          <section className="panel p-4">
+            <div className="skeleton-line w-28" />
+            <div className="mt-3 skeleton-line h-7 w-56" />
+            <div className="mt-3 space-y-2">
+              <div className="skeleton-line w-full" />
+              <div className="skeleton-line w-10/12" />
+            </div>
+          </section>
+          <section className="panel space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }, (_, index) => (
+                <div key={index} className="panel-muted space-y-3">
+                  <div className="skeleton-line w-24" />
+                  <div className="skeleton-line h-6 w-2/3" />
+                  <div className="space-y-2">
+                    <div className="skeleton-line w-full" />
+                    <div className="skeleton-line w-11/12" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <section className="app-page">
       <div className="app-container">

@@ -1,9 +1,17 @@
 import { getStoredToken } from '../utils/auth';
 
 import { getApiBaseUrl } from './baseUrl';
+import {
+  fetchCachedResource,
+  getCachedResource,
+  invalidateCachedResourcePrefix,
+} from './cache';
+import { invalidateDashboardSummaryCache } from './dashboard';
 import { buildApiError, REQUEST_TIMEOUT_MS, apiRequest } from './request';
 
 const API_BASE_URL = getApiBaseUrl();
+const CANDIDATES_CACHE_PREFIX = 'candidates:';
+export const CANDIDATES_CACHE_TTL_MS = 60 * 1000;
 
 const parseJsonSafely = (value) => {
   if (!value) {
@@ -15,6 +23,25 @@ const parseJsonSafely = (value) => {
   } catch (error) {
     return {};
   }
+};
+
+const getCandidatesCacheKey = (jobId = '') =>
+  `${CANDIDATES_CACHE_PREFIX}${jobId ? `job:${jobId}` : 'all'}`;
+
+const requestCandidates = (jobId = '') =>
+  apiRequest(jobId ? `/api/candidates/job/${jobId}` : '/api/candidates', {
+    timeoutMs: null,
+  });
+
+export const getCachedCandidates = (jobId = '', options = {}) =>
+  getCachedResource(getCandidatesCacheKey(jobId), {
+    storage: 'session',
+    maxAgeMs: CANDIDATES_CACHE_TTL_MS,
+    ...options,
+  });
+
+export const invalidateCandidatesCache = () => {
+  invalidateCachedResourcePrefix(CANDIDATES_CACHE_PREFIX, { storage: 'session' });
 };
 
 export const uploadCandidate = (formData, options = {}) => {
@@ -53,6 +80,8 @@ export const uploadCandidate = (formData, options = {}) => {
         return;
       }
 
+      invalidateCandidatesCache();
+      invalidateDashboardSummaryCache();
       resolve(data);
     };
 
@@ -68,27 +97,78 @@ export const uploadCandidate = (formData, options = {}) => {
   });
 };
 
-export const getCandidates = () => apiRequest('/api/candidates', { timeoutMs: null });
+export const getCandidates = async (options = {}) => {
+  const { preferCache = false, allowStale = preferCache, forceRefresh = false } = options;
+  const cachedCandidates = !forceRefresh
+    ? getCachedCandidates('', {
+        allowStale,
+      })
+    : null;
 
-export const getCandidatesByJob = (jobId) => apiRequest(`/api/candidates/job/${jobId}`, { timeoutMs: null });
+  if (preferCache && cachedCandidates?.data) {
+    return cachedCandidates.data;
+  }
 
-export const reviewCandidate = (candidateId, payload) =>
-  apiRequest(`/api/candidates/review/${candidateId}`, {
+  return fetchCachedResource(getCandidatesCacheKey(''), () => requestCandidates(''), {
+    storage: 'session',
+  });
+};
+
+export const getCandidatesByJob = async (jobId, options = {}) => {
+  const { preferCache = false, allowStale = preferCache, forceRefresh = false } = options;
+  const normalizedJobId = String(jobId || '').trim();
+  const cachedCandidates = normalizedJobId && !forceRefresh
+    ? getCachedCandidates(normalizedJobId, {
+        allowStale,
+      })
+    : null;
+
+  if (preferCache && cachedCandidates?.data) {
+    return cachedCandidates.data;
+  }
+
+  return fetchCachedResource(
+    getCandidatesCacheKey(normalizedJobId),
+    () => requestCandidates(normalizedJobId),
+    {
+      storage: 'session',
+    },
+  );
+};
+
+export const prefetchCandidates = (jobId = '') =>
+  fetchCachedResource(getCandidatesCacheKey(jobId), () => requestCandidates(jobId), {
+    storage: 'session',
+  }).catch(() => null);
+
+export const reviewCandidate = async (candidateId, payload) => {
+  const response = await apiRequest(`/api/candidates/review/${candidateId}`, {
     method: 'PUT',
     body: payload,
     timeoutMs: REQUEST_TIMEOUT_MS,
   });
+  invalidateCandidatesCache();
+  invalidateDashboardSummaryCache();
+  return response;
+};
 
-export const updateCandidateTags = (candidateId, payload) =>
-  apiRequest(`/api/candidates/tags/${candidateId}`, {
+export const updateCandidateTags = async (candidateId, payload) => {
+  const response = await apiRequest(`/api/candidates/tags/${candidateId}`, {
     method: 'PUT',
     body: payload,
     timeoutMs: REQUEST_TIMEOUT_MS,
   });
+  invalidateCandidatesCache();
+  return response;
+};
 
-export const scheduleCandidateInterview = (candidateId, payload) =>
-  apiRequest(`/api/candidates/interview/${candidateId}`, {
+export const scheduleCandidateInterview = async (candidateId, payload) => {
+  const response = await apiRequest(`/api/candidates/interview/${candidateId}`, {
     method: 'PUT',
     body: payload,
     timeoutMs: REQUEST_TIMEOUT_MS,
   });
+  invalidateCandidatesCache();
+  invalidateDashboardSummaryCache();
+  return response;
+};

@@ -1,10 +1,13 @@
 import { REQUEST_TIMEOUT_MS, apiRequest } from './request';
+import { invalidateDashboardSummaryCache } from './dashboard';
 
 export const generateScore = async (candidateId, jobId) => {
-  return apiRequest(`/api/scores/generate/${candidateId}/${jobId}`, {
+  const response = await apiRequest(`/api/scores/generate/${candidateId}/${jobId}`, {
     method: 'POST',
     timeoutMs: null,
   });
+  invalidateDashboardSummaryCache();
+  return response;
 };
 
 export const getLatestScores = async (params = {}) => {

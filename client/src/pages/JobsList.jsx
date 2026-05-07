@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { deleteJob, getJobs } from '../api/jobs';
+import { deleteJob, getCachedJobs, getJobs } from '../api/jobs';
 import AppShell from '../components/AppShell';
 import { isUnauthorizedError, removeToken } from '../utils/auth';
 
@@ -9,19 +9,36 @@ const jobSkeletonCards = Array.from({ length: 4 }, (_, index) => index);
 
 function JobsList() {
   const navigate = useNavigate();
-  const [jobs, setJobs] = useState([]);
+  const [jobs, setJobs] = useState(() => getCachedJobs({ allowStale: true })?.data?.jobs || []);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !getCachedJobs({ allowStale: true })?.data);
   const [deletingJobId, setDeletingJobId] = useState('');
   const [openJobMenuId, setOpenJobMenuId] = useState('');
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadJobs = async () => {
+      const hasCachedJobs = Boolean(getCachedJobs({ allowStale: true })?.data);
+
+      if (!hasCachedJobs) {
+        setIsLoading(true);
+      }
+
       try {
         const data = await getJobs();
+
+        if (!isMounted) {
+          return;
+        }
+
         setJobs(data.jobs || []);
       } catch (requestError) {
+        if (!isMounted) {
+          return;
+        }
+
         if (isUnauthorizedError(requestError)) {
           removeToken();
           navigate('/login', { replace: true });
@@ -30,11 +47,17 @@ function JobsList() {
 
         setError(requestError.message);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadJobs();
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigate]);
 
   const handleDelete = async (jobId) => {

@@ -5,7 +5,7 @@ import { getApiBaseUrl } from './baseUrl';
 const API_BASE_URL = getApiBaseUrl();
 
 export const REQUEST_TIMEOUT_MS = 8000;
-export const AUTH_REQUEST_TIMEOUT_MS = 5000;
+export const AUTH_REQUEST_TIMEOUT_MS = 20000;
 
 export const buildApiError = (response, data) => {
   const error = new Error(data.message || 'Something went wrong.');

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { uploadCandidate } from '../api/candidates';
-import { getJobs } from '../api/jobs';
+import { getCachedJobs, getJobs } from '../api/jobs';
 import AppShell from '../components/AppShell';
 import { useNotifications } from '../components/NotificationProvider';
 import { useToast } from '../components/ToastProvider';
@@ -181,7 +181,7 @@ function UploadCandidate() {
   const fileInputRef = useRef(null);
   const bulkFileInputRef = useRef(null);
   const isBulkUploadLockedRef = useRef(false);
-  const [jobs, setJobs] = useState([]);
+  const [jobs, setJobs] = useState(() => getCachedJobs({ allowStale: true })?.data?.jobs || []);
   const [uploadMode, setUploadMode] = useState('single');
   const [formData, setFormData] = useState({
     fullName: '',
@@ -195,7 +195,7 @@ function UploadCandidate() {
   const [bulkFormData, setBulkFormData] = useState(createBulkFormData);
   const [bulkFiles, setBulkFiles] = useState([]);
   const [isBulkDragActive, setIsBulkDragActive] = useState(false);
-  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(() => !getCachedJobs({ allowStale: true })?.data);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -205,11 +205,28 @@ function UploadCandidate() {
   const [lastUploadedCandidate, setLastUploadedCandidate] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadJobs = async () => {
+      const hasCachedJobs = Boolean(getCachedJobs({ allowStale: true })?.data);
+
+      if (!hasCachedJobs) {
+        setIsLoadingJobs(true);
+      }
+
       try {
         const data = await getJobs();
+
+        if (!isMounted) {
+          return;
+        }
+
         setJobs(data.jobs || []);
       } catch (requestError) {
+        if (!isMounted) {
+          return;
+        }
+
         if (isUnauthorizedError(requestError)) {
           removeToken();
           navigate('/login', { replace: true });
@@ -224,11 +241,17 @@ function UploadCandidate() {
           type: 'error',
         });
       } finally {
-        setIsLoadingJobs(false);
+        if (isMounted) {
+          setIsLoadingJobs(false);
+        }
       }
     };
 
     loadJobs();
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigate, showToast]);
 
   const validBulkFiles = bulkFiles.filter((entry) => !entry.isBlocked);

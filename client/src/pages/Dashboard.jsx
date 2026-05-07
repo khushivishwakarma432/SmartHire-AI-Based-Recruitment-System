@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getCandidates } from '../api/candidates';
-import { getDashboardSummary } from '../api/dashboard';
+import { getCachedCandidates, getCandidates } from '../api/candidates';
+import { getCachedDashboardSummary, getDashboardSummary } from '../api/dashboard';
 import { getLatestScores } from '../api/scores';
 import AnalyticsOverview from '../components/AnalyticsOverview';
 import AppShell from '../components/AppShell';
@@ -99,6 +99,9 @@ const normalizeSummary = (payload = {}) => ({
     : [],
 });
 
+const getCandidatesPayload = (payload) =>
+  Array.isArray(payload?.candidates) ? payload.candidates : Array.isArray(payload) ? payload : [];
+
 const getInterviewTimestamp = (candidate) => {
   if (!candidate?.interviewDate) {
     return null;
@@ -129,12 +132,18 @@ const formatInterviewDate = (date, time) => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [summary, setSummary] = useState(FALLBACK_SUMMARY);
-  const [candidates, setCandidates] = useState([]);
+  const [summary, setSummary] = useState(() => {
+    const cachedSummary = getCachedDashboardSummary({ allowStale: true });
+    return cachedSummary?.data ? normalizeSummary(cachedSummary.data) : FALLBACK_SUMMARY;
+  });
+  const [candidates, setCandidates] = useState(() => {
+    const cachedCandidates = getCachedCandidates('', { allowStale: true });
+    return cachedCandidates?.data ? getCandidatesPayload(cachedCandidates.data) : [];
+  });
   const [scoresByCandidate, setScoresByCandidate] = useState({});
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDetailsLoading, setIsDetailsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !getCachedDashboardSummary({ allowStale: true })?.data);
+  const [isDetailsLoading, setIsDetailsLoading] = useState(() => !getCachedCandidates('', { allowStale: true })?.data);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
@@ -147,8 +156,17 @@ const Dashboard = () => {
         return;
       }
 
-      setIsLoading(true);
-      setIsDetailsLoading(true);
+      const hasCachedSummary = Boolean(getCachedDashboardSummary({ allowStale: true })?.data);
+      const hasCachedCandidates = Boolean(getCachedCandidates('', { allowStale: true })?.data);
+
+      if (!hasCachedSummary) {
+        setIsLoading(true);
+      }
+
+      if (!hasCachedCandidates) {
+        setIsDetailsLoading(true);
+      }
+
       setError('');
 
       try {
@@ -172,7 +190,7 @@ const Dashboard = () => {
 
         if (summaryResult.status === 'fulfilled') {
           setSummary(normalizeSummary(summaryResult.value));
-        } else {
+        } else if (!hasCachedSummary) {
           setSummary(FALLBACK_SUMMARY);
         }
 
@@ -203,18 +221,16 @@ const Dashboard = () => {
 
         const candidatesPayload = candidatesResult.status === 'fulfilled' ? candidatesResult.value : null;
         const latestScoresPayload = latestScoresResult.status === 'fulfilled' ? latestScoresResult.value : null;
-        const normalizedCandidates = Array.isArray(candidatesPayload?.candidates)
-          ? candidatesPayload.candidates
-          : Array.isArray(candidatesPayload)
-            ? candidatesPayload
-            : [];
+        const normalizedCandidates = getCandidatesPayload(candidatesPayload);
         const normalizedScores = Array.isArray(latestScoresPayload?.scores)
           ? latestScoresPayload.scores
           : Array.isArray(latestScoresPayload)
             ? latestScoresPayload
             : [];
 
-        setCandidates(normalizedCandidates);
+        if (candidatesResult.status === 'fulfilled' || !hasCachedCandidates) {
+          setCandidates(normalizedCandidates);
+        }
         setScoresByCandidate(
           normalizedScores.reduce((accumulator, scoreEntry) => {
             const key = scoreEntry?.candidateId?._id || scoreEntry?.candidateId;

@@ -38,10 +38,6 @@ function MainLayout({ children }) {
                 <span className={`block truncate text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>AI candidate intelligence</span>
               </div>
             </Link>
-            <span className={`hidden h-8 w-px lg:block ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
-            <span className={`hidden rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] lg:inline-flex ${isDark ? 'bg-white/[0.04] text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-              Premium homepage
-            </span>
           </div>
 
           <nav className={`hidden flex-wrap items-center gap-5 text-sm font-medium lg:flex ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>

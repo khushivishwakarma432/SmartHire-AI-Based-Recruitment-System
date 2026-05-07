@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { getCurrentUser, loginUser } from '../api/auth';
 import { useToast } from '../components/ToastProvider';
+import { prefetchCommonProtectedRouteChunks } from '../routes/routeModules';
 import { getStoredToken, hasRecentSessionVerification, isUnauthorizedError, markSessionVerified, removeToken, storeToken } from '../utils/auth';
+import { prefetchProtectedExperience } from '../utils/prefetch';
 
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -103,6 +105,8 @@ function Login() {
       setSuccessMessage('Login successful. Redirecting to your dashboard...');
       storeToken(data.token);
       markSessionVerified(data.user || null);
+      prefetchCommonProtectedRouteChunks();
+      prefetchProtectedExperience();
       showToast({
         title: 'Logged in',
         message: 'You are back in SmartHire.',

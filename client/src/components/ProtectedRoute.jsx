@@ -3,6 +3,8 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { getCurrentUser } from '../api/auth';
 import { getStoredToken, hasRecentSessionVerification } from '../utils/auth';
+import { prefetchCommonProtectedRouteChunks } from '../routes/routeModules';
+import { prefetchProtectedExperience } from '../utils/prefetch';
 import { isUnauthorizedError, removeToken } from '../utils/auth';
 
 function ProtectedRoute() {
@@ -60,6 +62,15 @@ function ProtectedRoute() {
       isMounted = false;
     };
   }, [token]);
+
+  useEffect(() => {
+    if (status !== 'authorized') {
+      return;
+    }
+
+    prefetchCommonProtectedRouteChunks();
+    prefetchProtectedExperience();
+  }, [status]);
 
   if (!token) {
     return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;

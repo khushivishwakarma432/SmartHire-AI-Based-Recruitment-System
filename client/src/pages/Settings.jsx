@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getCurrentUser } from '../api/auth';
 import AppShell from '../components/AppShell';
 import { useToast } from '../components/ToastProvider';
-import { getStoredToken, isUnauthorizedError, removeToken } from '../utils/auth';
+import { getCachedAuthenticatedUser, getStoredToken, isUnauthorizedError, removeToken } from '../utils/auth';
 import { getStoredSettings, storeSettings } from '../utils/settings';
 import { setStoredTheme, useTheme } from '../utils/theme';
 
@@ -32,8 +32,8 @@ function Settings() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { theme } = useTheme();
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(() => getCachedAuthenticatedUser());
+  const [isLoading, setIsLoading] = useState(() => !getCachedAuthenticatedUser());
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState(() => {
@@ -56,8 +56,14 @@ function Settings() {
       }
 
       try {
-        const data = await getCurrentUser(token);
-        setUser(data.user);
+        const hasCachedUser = Boolean(getCachedAuthenticatedUser());
+
+        if (!hasCachedUser) {
+          setIsLoading(true);
+        }
+
+        const data = await getCurrentUser(token, { preferCache: true });
+        setUser(data);
       } catch (requestError) {
         if (isUnauthorizedError(requestError)) {
           removeToken();

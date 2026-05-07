@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { getCurrentUser } from '../api/auth';
-import { getCandidates } from '../api/candidates';
-import { getJobs } from '../api/jobs';
-import { getStoredToken, isUnauthorizedError, removeToken } from '../utils/auth';
+import { getCachedCandidates, getCandidates } from '../api/candidates';
+import { getCachedJobs, getJobs } from '../api/jobs';
+import { getCachedAuthenticatedUser, getStoredToken, isUnauthorizedError, removeToken } from '../utils/auth';
 
 const SEARCH_DEBOUNCE_MS = 180;
 const MAX_RESULTS_PER_GROUP = 4;
@@ -18,11 +18,16 @@ function GlobalSearch() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    const hasCachedJobs = Boolean(getCachedJobs({ allowStale: true })?.data);
+    const hasCachedCandidates = Boolean(getCachedCandidates('', { allowStale: true })?.data);
+    const hasCachedUser = Boolean(getCachedAuthenticatedUser());
+    return !(hasCachedJobs && hasCachedCandidates && hasCachedUser);
+  });
   const [loadError, setLoadError] = useState('');
-  const [jobs, setJobs] = useState([]);
-  const [candidates, setCandidates] = useState([]);
-  const [recruiter, setRecruiter] = useState(null);
+  const [jobs, setJobs] = useState(() => getCachedJobs({ allowStale: true })?.data?.jobs || []);
+  const [candidates, setCandidates] = useState(() => getCachedCandidates('', { allowStale: true })?.data?.candidates || []);
+  const [recruiter, setRecruiter] = useState(() => getCachedAuthenticatedUser());
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -46,10 +51,18 @@ function GlobalSearch() {
       }
 
       try {
+        const hasCachedJobs = Boolean(getCachedJobs({ allowStale: true })?.data);
+        const hasCachedCandidates = Boolean(getCachedCandidates('', { allowStale: true })?.data);
+        const hasCachedUser = Boolean(getCachedAuthenticatedUser());
+
+        if (!(hasCachedJobs && hasCachedCandidates && hasCachedUser)) {
+          setIsLoading(true);
+        }
+
         const [jobsResponse, candidatesResponse, recruiterResponse] = await Promise.all([
-          getJobs(),
-          getCandidates(),
-          getCurrentUser(token),
+          getJobs({ preferCache: true }),
+          getCandidates({ preferCache: true }),
+          getCurrentUser(token, { preferCache: true }),
         ]);
 
         if (!isMounted) {

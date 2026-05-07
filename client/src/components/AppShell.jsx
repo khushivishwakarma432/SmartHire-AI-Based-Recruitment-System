@@ -6,6 +6,7 @@ import GlobalSearch from './GlobalSearch';
 import NotificationBell from './NotificationBell';
 import ProductFooter from './ProductFooter';
 import ThemeToggle from './ThemeToggle';
+import { prefetchRouteExperience } from '../routes/routeModules';
 import { useTheme } from '../utils/theme';
 
 const workflowSteps = [
@@ -249,7 +250,14 @@ function AppShell({ title, description, actions, children }) {
             </p>
             <nav className="mt-3 flex flex-wrap gap-2 xl:flex-col xl:items-start">
               {workspaceLinks.map((link) => (
-                <NavLink key={link.to} className={workspaceLinkClassName} end={link.end} to={link.to}>
+                <NavLink
+                  key={link.to}
+                  className={workspaceLinkClassName}
+                  end={link.end}
+                  to={link.to}
+                  onFocus={() => prefetchRouteExperience(link.to)}
+                  onMouseEnter={() => prefetchRouteExperience(link.to)}
+                >
                   {link.label}
                 </NavLink>
               ))}
